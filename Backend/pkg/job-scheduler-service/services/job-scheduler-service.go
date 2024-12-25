@@ -9,7 +9,7 @@ import (
 
 // These are the methods that the JobSchedulerService should implement
 type JobSchedulerServiceMethods interface {
-	QueueJob() error
+	QueueDownload(UserID int, VideoID string, SourceURL string) error
 	// ViewJobStatus() error
 }
 
@@ -29,8 +29,8 @@ func NewJobSchedulerService(asynqClient *asynq.Client) JobSchedulerServiceMethod
 	}
 }
 
-func (js *JobSchedulerService) QueueJob() error {
-	task, err := tasks.NewEmailDeliveryTask(42, "some:template:id")
+func (js *JobSchedulerService) QueueDownload(UserID int, VideoID string, SourceURL string) error {
+	task, err := tasks.NewConvertVideoTask(UserID, VideoID, SourceURL)
 	if err != nil {
 		log.Printf("could not create task: %v", err)
 	}

@@ -1,8 +1,10 @@
 package router
 
 import (
+	"encoding/json"
 	"net/http"
 
+	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/models"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/services"
 )
 
@@ -22,19 +24,25 @@ func NewJobSchedulerRouter(jss services.JobSchedulerServiceMethods) *JobSchedule
 
 // Registers the routes for the JobSchedulerRouter
 func (jsr *JobSchedulerRouter) RegisterRoutes() {
-	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/video-download", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			jsr.HandleTest(w, r)
+			jsr.HandleDownload(w, r)
 		} else {
 			http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
 		}
 	})
 }
 
-// Handles the test route
-func (jsr *JobSchedulerRouter) HandleTest(w http.ResponseWriter, r *http.Request) {
+// Handles the video download route
+func (jsr *JobSchedulerRouter) HandleDownload(w http.ResponseWriter, r *http.Request) {
+	requestBody := models.VideoDownload{}
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+	// TODO: Validate the contents of the request.
 	// Queue the job
-	err := jsr.service.QueueJob()
+	err := jsr.service.QueueDownload(requestBody.UserID, requestBody.VideoID, requestBody.SourceURL)
 	if err != nil {
 		http.Error(w, "Failed to queue job", http.StatusInternalServerError)
 		return
