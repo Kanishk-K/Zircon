@@ -1,0 +1,97 @@
+html {
+  background-color: #fff;
+  color: #ffffff;
+  background-image: url(../static/background.png);
+  background-size: cover;
+  background-position-x: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  height: 100%;
+}
+
+body,
+html {
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.42857143;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  color: rgb(91, 0, 19);
+  letter-spacing: -0.05em;
+  margin: 0 0 10px;
+}
+
+h1 {
+  font-size: 34px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+p,
+li {
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: black;
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
+.hidden {
+  display: none;
+}
+
+.light {
+  font-weight: 300;
+}
+
+a {
+  color: #49080f;
+  text-decoration: underline;
+  font-weight: 300;
+  cursor: pointer;
+}
+
+.subtitle {
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 2px 0 24px;
+  color: #000000;
+  font-weight: 200;
+}
+
+.layout {
+  margin: 10px;
+}
+
+@media (min-width: 768px) {
+  .layout {
+    margin: 50px 10%;
+  }
+}
+
+.card {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 5px;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.05);
+  margin: 0 0 10px 0px;
+  padding: 10px;
+}
+
+#footer {
+  text-align: center;
+  margin-top: 30px;
+}
