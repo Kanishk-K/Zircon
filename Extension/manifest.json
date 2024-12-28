@@ -14,6 +14,16 @@
       "js": ["src/util/logger.js", "src/util/media.js", "src/kaltura_grid.js"],
       "css": ["static/css/kaltura_grid.css"],
       "all_frames": true
+    },
+    {
+      "matches": ["https://kaf.canvas.umn.edu/media/*"],
+      "js": [
+        "src/util/logger.js",
+        "src/util/media.js",
+        "src/kaltura_player.js"
+      ],
+      "css": ["static/css/kaltura_player.css"],
+      "all_frames": true
     }
   ]
 }

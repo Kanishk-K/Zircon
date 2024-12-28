@@ -1,0 +1,9 @@
+.download-banner a {
+  fill: #52525b !important;
+  margin-left: 5px !important;
+  margin-right: 5px !important;
+}
+
+.download-banner a:hover {
+  fill: black !important;
+}
