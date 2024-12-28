@@ -7,5 +7,13 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "Lecture Download Configuration"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://kaf.canvas.umn.edu/channel/*"],
+      "js": ["src/util/logger.js", "src/util/media.js", "src/kaltura_grid.js"],
+      "css": ["static/css/kaltura_grid.css"],
+      "all_frames": true
+    }
+  ]
 }
