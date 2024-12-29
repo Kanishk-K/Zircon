@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <title>Process the Video</title>
+    <link rel="stylesheet" href="../fonts/fonts.css" />
+    <link rel="stylesheet" href="../../global.css" />
+    <link rel="stylesheet" href="../css/process.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <h1 id="logo">UMN Lecture Downloader</h1>
+      <div id="no-content-alert" class="hidden">
+        <img src="../icons/warning-circle.svg" />
+        <p>
+          No video data was provided to process. Please retry or
+          <a>report the issue</a>.
+        </p>
+      </div>
+      <div id="process-content-container" class="hidden">
+        <div class="process card" id="process-data">
+          <img id="thumbnail" />
+          <h2 id="video-title"></h2>
+          <div
+            class="download-banner"
+            style="display: flex; flex-direction: row; gap: 12px"
+          >
+            <a id="hd-link" href="">
+              <img src="../icons/high-definition.svg" />
+            </a>
+            <a id="sd-link" href="">
+              <img src="../icons/standard-definition.svg" />
+            </a>
+          </div>
+          <form id="process-form">
+            <!-- Have a checkbox for if notes are desired, a checkbox for generating a summary and a dropdown for selecting video -->
+            <div class="form-group">
+              <input type="checkbox" id="notes" name="notes" />
+              <label for="notes">Generate Notes</label>
+            </div>
+            <div class="form-group">
+              <input type="checkbox" id="summary" name="summary" />
+              <label for="summary">Generate Summary</label>
+            </div>
+            <div class="form-group">
+              <input type="checkbox" id="brainrot" name="brainrot" disabled />
+              <label for="brainrot">Generate Brainrot Video</label>
+            </div>
+            <div class="form-group">
+              <select id="video" name="video" disabled>
+                <option value="none">Make A Selection</option>
+                <option value="subway">Subway Surfers</option>
+                <option value="minecraft">Minecraft</option>
+                <option value="soap">Soap</option>
+                <option value="slime">Slime</option>
+                <option value="sand">Sand</option>
+                <option value="car">GTA Car</option>
+              </select>
+              <label for="video">Select Background Video</label>
+              <div id="brainrot-options">
+                <img src="../images/subway.png" id="subway" />
+                <img src="../images/minecraft.png" id="minecraft" />
+                <img src="../images/soap.png" id="soap" />
+                <img src="../images/slime.png" id="slime" />
+                <img src="../images/sand.png" id="sand" />
+                <img src="../images/car.png" id="car" />
+              </div>
+              <button id="submit" type="button" disabled>Submit Task</button>
+            </div>
+          </form>
+        </div>
+        <div class="process" id="process-ongoing"></div>
+      </div>
+    </div>
+  </body>
+  <script src="../js/process.js"></script>
+</html>

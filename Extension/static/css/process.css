@@ -1,0 +1,62 @@
+#logo {
+  margin-bottom: 5vh;
+}
+
+#no-content-alert:not(.hidden) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #fca5a5;
+  padding: 10px;
+  border-radius: 10px;
+  gap: 10px;
+}
+
+#no-content-alert p {
+  margin: 0px;
+}
+
+.process-content-container:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .process-content-container {
+    flex-direction: row;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 600px;
+}
+
+.card > #thumbnail {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+#brainrot-options {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#brainrot-options > img {
+  width: 100%;
+  aspect-ratio: 9/16;
+  height: auto;
+  object-fit: cover;
+  opacity: 0.25;
+}
+
+#brainrot-options > img.active {
+  opacity: 1;
+}

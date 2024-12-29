@@ -13,6 +13,7 @@
   fill: #a1a1aa !important;
   margin-left: 5px !important;
   margin-right: 5px !important;
+  cursor: pointer !important;
 }
 
 .download-banner a:hover {
