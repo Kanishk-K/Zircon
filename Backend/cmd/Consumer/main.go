@@ -8,7 +8,6 @@ import (
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 
 	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
@@ -17,20 +16,13 @@ import (
 func main() {
 	cwd, _ := os.Getwd()
 	fmt.Println("Current working directory:", cwd)
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(
+		"../.env",
+	); err != nil {
 		log.Println("Warning: No .env file found. Using existing environment variables.")
 	}
 
-	var LLM_BASE_URL string
-	if os.Getenv(("DEV_ENV")) == "true" {
-		LLM_BASE_URL = "https://api.openai.com"
-	} else {
-		LLM_BASE_URL = "https://api.groq.com/openai/v1"
-	}
-	openAIClient := openai.NewClient(
-		option.WithAPIKey(os.Getenv("LLM_API_KEY")),
-		option.WithBaseURL(LLM_BASE_URL),
-	)
+	openAIClient := openai.NewClient()
 
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},

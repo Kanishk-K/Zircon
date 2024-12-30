@@ -30,7 +30,7 @@ func NewSummarizeTranscriptionTask(jobInfo *models.SummarizeInformation) (*asynq
 	if err != nil {
 		return nil, err
 	}
-	return asynq.NewTask(TypeSummarizeTranscription, payload, asynq.Queue("critical"), asynq.Timeout(60*time.Minute)), nil
+	return asynq.NewTask(TypeSummarizeTranscription, payload, asynq.Queue("critical"), asynq.MaxRetry(0), asynq.Timeout(60*time.Minute)), nil
 }
 
 func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx context.Context, t *asynq.Task) error {
@@ -47,9 +47,15 @@ func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx con
 	}
 
 	// Generate the summary
-	p.generateSummary(&transcriptData)
+	summary, err := p.generateSummary(ctx, &transcriptData)
+	if err != nil {
+		log.Printf("Failed to generate summary: %v", err)
+		return err
+	}
 
-	log.Printf("Completed summarizing transcript titled: %s", data.Title)
+	// Upload summary to S3
+	log.Printf("Summary: %s", summary)
+
 	return nil
 }
 
@@ -73,7 +79,21 @@ func downloadTranscript(transcriptData *string, downloadLink string) error {
 	return nil
 }
 
-func (p *SummarizeTranscriptionProcess) generateSummary(transcriptData *string) error {
-	log.Printf("Generating summary for transcript: %s", *transcriptData)
-	return nil
+func (p *SummarizeTranscriptionProcess) generateSummary(ctx context.Context, transcriptData *string) (string, error) {
+	chatCompletion, err := p.LLMClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(
+				"You are an instructor at a university. You are tasked to summarize a lecture. Write it in the perspective as if you were explaining it verbally to a student. Do not include any formatting including latex, images, or code. Do not include a preface of any kind. Provide thorough explanations of each concept discussed. Provide context to all examples.  Begin your response with a high level introduction to the topics that will be discussed.",
+			),
+			openai.UserMessage(*transcriptData),
+		}),
+		Model: openai.F(openai.ChatModelGPT4o),
+	})
+
+	if err != nil {
+		log.Printf("Failed to generate summary: %v", err)
+		return "", err
+	}
+
+	return chatCompletion.Choices[0].Message.Content, nil
 }
