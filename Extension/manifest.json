@@ -3,7 +3,6 @@
   "description": "This extension downloads lecture videos and can enhance them to better your learning experience. This is only available for UMN students. Current supported platforms are Unite and Kalkatura",
   "version": "1.0",
   "manifest_version": 3,
-  "permissions": ["storage"],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Lecture Download Configuration"
@@ -29,5 +28,7 @@
   "background": {
     "service_worker": "background.js"
   },
-  "web_accessible_resources": []
+  "web_accessible_resources": [],
+  "permissions": ["storage"],
+  "host_permissions": ["http://localhost:8080/*"]
 }

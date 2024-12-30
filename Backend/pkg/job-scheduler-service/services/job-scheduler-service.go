@@ -3,13 +3,14 @@ package services
 import (
 	"log"
 
+	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/models"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 	"github.com/hibiken/asynq"
 )
 
 // These are the methods that the JobSchedulerService should implement
 type JobSchedulerServiceMethods interface {
-	QueueDownload(UserID int, VideoID string, SourceURL string) error
+	ScheduleJob(jobInfo *models.JobInformation) error
 	// ViewJobStatus() error
 }
 
@@ -29,15 +30,21 @@ func NewJobSchedulerService(asynqClient *asynq.Client) JobSchedulerServiceMethod
 	}
 }
 
-func (js *JobSchedulerService) QueueDownload(UserID int, VideoID string, SourceURL string) error {
-	task, err := tasks.NewConvertVideoTask(UserID, VideoID, SourceURL)
+func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobInformation) error {
+	// TODO: Validate that the user is allowed to submit jobs
+	// TODO: Register the job in Redis
+	// Create a new task to transcribe the video
+	task, err := tasks.NewTranscribeVideoTask(jobInfo)
 	if err != nil {
-		log.Printf("could not create task: %v", err)
+		log.Println("Failed to create task: ", err)
+		return err
 	}
-	info, err := js.asynqClient.Enqueue(task)
+	// Enqueue the task
+	_, err = js.asynqClient.Enqueue(task)
 	if err != nil {
-		log.Printf("could not enqueue task: %v", err)
+		log.Println("Failed to enqueue task: ", err)
+		return err
 	}
-	log.Printf("enqueued task ID %s", info.ID)
-	return err
+	return nil
+
 }

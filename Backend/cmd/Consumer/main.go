@@ -35,7 +35,7 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeConvertVideo, tasks.HandleConvertVideoTask)
+	mux.HandleFunc(tasks.TypeTranscribeVideo, tasks.HandleTranscribeVideoTask)
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {

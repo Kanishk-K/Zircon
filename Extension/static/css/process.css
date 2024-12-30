@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  background-color: #fca5a5;
+  background-color: #fecaca;
   padding: 10px;
   border-radius: 10px;
   gap: 10px;
@@ -16,16 +16,10 @@
   margin: 0px;
 }
 
-.process-content-container:not(.hidden) {
+#process-content-container:not(.hidden) {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-@media (min-width: 768px) {
-  .process-content-container {
-    flex-direction: row;
-  }
+  flex-direction: row;
+  gap: 30px;
 }
 
 .card {
@@ -59,4 +53,27 @@
 
 #brainrot-options > img.active {
   opacity: 1;
+}
+
+#process-ongoing:not(.hidden) {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-item {
+  display: flex;
+  width: 100%;
+  background-color: #fef08a;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.task-item.success {
+  background-color: #bbf7d0;
+}
+
+.task-item.error {
+  background-color: #fecaca;
 }

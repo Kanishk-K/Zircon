@@ -24,9 +24,9 @@ func NewJobSchedulerRouter(jss services.JobSchedulerServiceMethods) *JobSchedule
 
 // Registers the routes for the JobSchedulerRouter
 func (jsr *JobSchedulerRouter) RegisterRoutes() {
-	http.HandleFunc("/video-download", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/process", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			jsr.HandleDownload(w, r)
+			jsr.HandleIncomingJob(w, r)
 		} else {
 			http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
 		}
@@ -34,21 +34,23 @@ func (jsr *JobSchedulerRouter) RegisterRoutes() {
 }
 
 // Handles the video download route
-func (jsr *JobSchedulerRouter) HandleDownload(w http.ResponseWriter, r *http.Request) {
-	requestBody := models.VideoDownload{}
+func (jsr *JobSchedulerRouter) HandleIncomingJob(w http.ResponseWriter, r *http.Request) {
+	requestBody := models.JobInformation{}
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
 		return
 	}
 	// TODO: Validate the contents of the request.
 	// Queue the job
-	err := jsr.service.QueueDownload(requestBody.UserID, requestBody.VideoID, requestBody.SourceURL)
+	err := jsr.service.ScheduleJob(&requestBody)
 	if err != nil {
 		http.Error(w, "Failed to queue job", http.StatusInternalServerError)
 		return
 	}
-	// Respond with a success message
-	if _, err := w.Write([]byte("Job queued successfully")); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+	// Respond with a success message in JSON
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "Job queued successfully"}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
 	}
 }
