@@ -1,0 +1,31 @@
+services:
+  redis:
+    image: "redis:alpine"
+    networks:
+      default:
+  web:
+    build:
+      context: ./Backend
+      dockerfile: web.Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      default:
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis:6379
+  consumer:
+    build:
+      context: ./Backend
+      dockerfile: consumer.Dockerfile
+    networks:
+      default:
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis:6379
+    
+
+networks:
+  default:

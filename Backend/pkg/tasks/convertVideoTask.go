@@ -21,7 +21,7 @@ func NewTranscribeVideoTask(jobInfo *models.JobInformation) (*asynq.Task, error)
 	if err != nil {
 		return nil, err
 	}
-	return asynq.NewTask(TypeTranscribeVideo, payload, asynq.Queue("critical"), asynq.MaxRetry(1), asynq.Timeout(60*time.Minute)), nil
+	return asynq.NewTask(TypeTranscribeVideo, payload, asynq.Queue("critical"), asynq.Timeout(60*time.Minute)), nil
 }
 
 func HandleTranscribeVideoTask(ctx context.Context, t *asynq.Task) error {
@@ -51,6 +51,8 @@ func HandleTranscribeVideoTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 	// Submit the mp3 file to the API for processing
+
+	log.Printf("Successfully converted video titled: %s", p.Title)
 
 	return nil
 }
