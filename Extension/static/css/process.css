@@ -35,7 +35,7 @@
   border-radius: 10px;
 }
 
-#brainrot-options {
+#background-options {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 10px;
@@ -43,7 +43,7 @@
   margin-bottom: 20px;
 }
 
-#brainrot-options > img {
+#background-options > img {
   width: 100%;
   aspect-ratio: 9/16;
   height: auto;
@@ -51,7 +51,7 @@
   opacity: 0.25;
 }
 
-#brainrot-options > img.active {
+#background-options > img.active {
   opacity: 1;
 }
 

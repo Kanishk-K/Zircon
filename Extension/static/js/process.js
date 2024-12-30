@@ -20,13 +20,12 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
 
     thumbnail.src = msg.data.thumbnail;
     title.textContent = msg.data.title;
-    hd_download.href = msg.data.download.url;
-    sd_download.href = msg.data.process.url;
+    hd_download.href = msg.data.HD.url;
+    sd_download.href = msg.data.SD.url;
 
     /* Processing Form */
     const notesButton = document.getElementById("notes");
     const summarizeButton = document.getElementById("summary");
-    const brainrotButton = document.getElementById("brainrot");
     const videoDropdown = document.getElementById("video");
     const submitButton = document.getElementById("submit");
     let videoActive = "none";
@@ -54,25 +53,13 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     summarizeButton.addEventListener("change", () => {
       if (summarizeButton.checked) {
         buttonActive++;
-        brainrotButton.disabled = false;
         submitButton.disabled = false;
+        videoDropdown.disabled = false;
       } else {
         buttonActive--;
         if (buttonActive === 0) {
           submitButton.disabled = true;
         }
-        brainrotButton.disabled = true;
-        brainrotButton.checked = false;
-        videoDropdown.disabled = true;
-        videoDropdown.selectedIndex = 0;
-        updateVideoActive("none");
-        videoActive = "none";
-      }
-    });
-    brainrotButton.addEventListener("change", () => {
-      if (brainrotButton.checked) {
-        videoDropdown.disabled = false;
-      } else {
         videoDropdown.disabled = true;
         videoDropdown.selectedIndex = 0;
         updateVideoActive("none");
@@ -91,17 +78,15 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     submitButton.onclick = () => {
       // Harvest the data from the form
       const submissionData = {
-        download: msg.data.download.url,
+        transcript: msg.data.transcript,
         title: msg.data.title,
         notes: notesButton.checked,
         summarize: summarizeButton.checked,
-        brainrot: brainrotButton.checked,
-        video: videoDropdown.value,
+        backgroundVideo: videoDropdown.value,
       };
       // Disable buttons so user can't submit again
       notesButton.disabled = true;
       summarizeButton.disabled = true;
-      brainrotButton.disabled = true;
       videoDropdown.disabled = true;
       submitButton.disabled = true;
       // Show to the user

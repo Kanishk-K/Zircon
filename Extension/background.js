@@ -18,7 +18,7 @@ const RuntimeMessages = {
     await onTabLoaded(tab.id);
     await chrome.tabs.sendMessage(tab.id, {
       action: "setData",
-      data: request.mediaSources,
+      data: request.mediaInformation,
     });
   },
 };
