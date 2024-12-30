@@ -17,10 +17,11 @@ async function getVideoInformation(partnerID, entryID) {
 
   const params = {
     // A multirequest essentially performs multiple operations in a single request [https://www.kaltura.com/api_v3/testmeDoc/general/multirequest.html]
-    // This returns an array of size 3
+    // This returns an array of size 4
     // 1. The session
     // 2. The flavor (video variation) data
     // 3. The actual video query data
+    // 4. The attachment data (transcript)
     service: "multirequest",
     format: "1",
     ignoreNull: "1",

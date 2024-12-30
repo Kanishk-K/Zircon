@@ -7,6 +7,9 @@ import (
 
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
+
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
 )
@@ -17,6 +20,18 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("Warning: No .env file found. Using existing environment variables.")
 	}
+
+	var LLM_BASE_URL string
+	if os.Getenv(("DEV_ENV")) == "true" {
+		LLM_BASE_URL = "https://api.openai.com"
+	} else {
+		LLM_BASE_URL = "https://api.groq.com/openai/v1"
+	}
+	openAIClient := openai.NewClient(
+		option.WithAPIKey(os.Getenv("LLM_API_KEY")),
+		option.WithBaseURL(LLM_BASE_URL),
+	)
+
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
 		asynq.Config{
@@ -35,7 +50,7 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.HandleTranscribeVideoTask)
+	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient).HandleSummarizeTranscriptionTask)
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {

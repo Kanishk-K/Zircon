@@ -78,6 +78,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     submitButton.onclick = () => {
       // Harvest the data from the form
       const submissionData = {
+        entryID: msg.data.entryID,
         transcript: msg.data.transcript,
         title: msg.data.title,
         notes: notesButton.checked,

@@ -34,17 +34,28 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobInformation) error
 	// TODO: Validate that the user is allowed to submit jobs
 	// TODO: Register the job in Redis
 	// Create a new task to transcribe the video
-	task, err := tasks.NewTranscribeVideoTask(jobInfo)
-	if err != nil {
-		log.Println("Failed to create task: ", err)
-		return err
+	if jobInfo.Summarize {
+		summarizeInfo := &models.SummarizeInformation{
+			EntryID:         jobInfo.EntryID,
+			TranscriptLink:  jobInfo.TranscriptLink,
+			Title:           jobInfo.Title,
+			BackgroundVideo: jobInfo.BackgroundVideo,
+		}
+		task, err := tasks.NewSummarizeTranscriptionTask(summarizeInfo)
+		if err != nil {
+			log.Println("Failed to create task: ", err)
+			return err
+		}
+		// Enqueue the task
+		_, err = js.asynqClient.Enqueue(task)
+		if err != nil {
+			log.Println("Failed to enqueue task: ", err)
+			return err
+		}
 	}
-	// Enqueue the task
-	_, err = js.asynqClient.Enqueue(task)
-	if err != nil {
-		log.Println("Failed to enqueue task: ", err)
-		return err
+
+	if jobInfo.Notes {
+		log.Printf("Tasked to generate notes for video titled: %s", jobInfo.Title)
 	}
 	return nil
-
 }
