@@ -17,7 +17,7 @@ import (
 func main() {
 	cwd, _ := os.Getwd()
 	fmt.Println("Current working directory:", cwd)
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load("../.env"); err != nil {
 		log.Println("Warning: No .env file found. Using existing environment variables.")
 	}
 

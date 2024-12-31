@@ -3,10 +3,12 @@ module github.com/Kanishk-K/UniteDownloader/Backend
 go 1.23.4
 
 require (
+	github.com/aws/aws-sdk-go v1.55.5 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hibiken/asynq v0.25.1 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/openai/openai-go v0.1.0-alpha.41 // indirect
 	github.com/redis/go-redis/v9 v9.7.0 // indirect

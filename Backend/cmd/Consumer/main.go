@@ -9,6 +9,9 @@ import (
 
 	"github.com/openai/openai-go"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/polly"
+
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
 )
@@ -23,6 +26,17 @@ func main() {
 	}
 
 	openAIClient := openai.NewClient()
+
+	// This searches for the credentials file in the default location ($HOME/.aws/credentials)
+	pollyClient := polly.New(
+		session.Must(
+			session.NewSessionWithOptions(
+				session.Options{
+					SharedConfigState: session.SharedConfigEnable,
+				},
+			),
+		),
+	)
 
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
@@ -43,6 +57,7 @@ func main() {
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient).HandleSummarizeTranscriptionTask)
+	mux.HandleFunc(tasks.TypeTTSSummary, tasks.NewTTSSummaryProcess(pollyClient).HandleTTSSummaryTask)
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {

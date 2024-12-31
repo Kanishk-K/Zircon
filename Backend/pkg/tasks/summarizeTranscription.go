@@ -54,7 +54,7 @@ func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx con
 	}
 
 	// Upload summary to S3
-	log.Printf("Summary: %s", summary)
+	log.Println(summary)
 
 	return nil
 }
