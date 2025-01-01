@@ -9,8 +9,10 @@ import (
 
 	"github.com/openai/openai-go"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/polly"
+	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
@@ -28,15 +30,22 @@ func main() {
 	openAIClient := openai.NewClient()
 
 	// This searches for the credentials file in the default location ($HOME/.aws/credentials)
-	pollyClient := polly.New(
-		session.Must(
-			session.NewSessionWithOptions(
-				session.Options{
-					SharedConfigState: session.SharedConfigEnable,
-				},
-			),
-		),
-	)
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = "us-east-1"
+	}
+	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			Region: aws.String(region),
+		},
+	}))
+	pollyClient := polly.New(awsSession)
+	s3Client := s3.New(awsSession)
+
+	redisUrl := os.Getenv("REDIS_URL")
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: redisUrl})
+	defer asynqClient.Close()
 
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
@@ -56,8 +65,8 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient).HandleSummarizeTranscriptionTask)
-	mux.HandleFunc(tasks.TypeTTSSummary, tasks.NewTTSSummaryProcess(pollyClient).HandleTTSSummaryTask)
+	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient, s3Client, asynqClient).HandleSummarizeTranscriptionTask)
+	mux.HandleFunc(tasks.TypeTTSSummary, tasks.NewTTSSummaryProcess(pollyClient, s3Client, asynqClient).HandleTTSSummaryTask)
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {

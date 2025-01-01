@@ -18,7 +18,6 @@ type SummarizeInformation struct {
 
 type TTSSummaryInformation struct {
 	EntryID         string `json:"entryID"`
-	Summary         string `json:"summary"` // TODO: Change to S3 URL
 	Title           string `json:"title"`
 	BackgroundVideo string `json:"backgroundVideo"`
 }

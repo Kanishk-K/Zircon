@@ -31,15 +31,6 @@ func (jsr *JobSchedulerRouter) RegisterRoutes() {
 			http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
 		}
 	})
-
-	// TESTING ROUTES: REMOVE IN PROD
-	http.HandleFunc("/tts", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			jsr.HandleTTS(w, r)
-		} else {
-			http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
-		}
-	})
 }
 
 // Handles the video download route
@@ -52,27 +43,6 @@ func (jsr *JobSchedulerRouter) HandleIncomingJob(w http.ResponseWriter, r *http.
 	// TODO: Validate the contents of the request.
 	// Queue the job
 	err := jsr.service.ScheduleJob(&requestBody)
-	if err != nil {
-		http.Error(w, "Failed to queue job", http.StatusInternalServerError)
-		return
-	}
-	// Respond with a success message in JSON
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": "Job queued successfully"}); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
-}
-
-// TODO: REMOVE IN PROD
-func (jsr *JobSchedulerRouter) HandleTTS(w http.ResponseWriter, r *http.Request) {
-	requestBody := models.TTSSummaryInformation{}
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
-		return
-	}
-
-	err := jsr.service.ScheduleTTS(&requestBody)
 	if err != nil {
 		http.Error(w, "Failed to queue job", http.StatusInternalServerError)
 		return

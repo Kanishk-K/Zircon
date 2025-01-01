@@ -11,7 +11,6 @@ import (
 // These are the methods that the JobSchedulerService should implement
 type JobSchedulerServiceMethods interface {
 	ScheduleJob(jobInfo *models.JobInformation) error
-	ScheduleTTS(jobInfo *models.TTSSummaryInformation) error // TODO: REMOVE IN PROD
 }
 
 // This contains the content that JobSchedulerService will need
@@ -56,21 +55,6 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobInformation) error
 
 	if jobInfo.Notes {
 		log.Printf("Tasked to generate notes for video titled: %s", jobInfo.Title)
-	}
-	return nil
-}
-
-func (js *JobSchedulerService) ScheduleTTS(jobInfo *models.TTSSummaryInformation) error {
-	task, err := tasks.NewTTSSummaryTask(jobInfo)
-	if err != nil {
-		log.Println("Failed to create task: ", err)
-		return err
-	}
-	// Enqueue the task
-	_, err = js.asynqClient.Enqueue(task)
-	if err != nil {
-		log.Println("Failed to enqueue task", err)
-		return err
 	}
 	return nil
 }

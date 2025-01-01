@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,7 +16,9 @@ import (
 
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/models"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/polly"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hibiken/asynq"
 )
 
@@ -23,11 +26,15 @@ const TypeTTSSummary = "summary:tts"
 
 type TTSSummaryProcess struct {
 	PollyClient *polly.Polly
+	s3Client    *s3.S3
+	asynqClient *asynq.Client
 }
 
-func NewTTSSummaryProcess(client *polly.Polly) *TTSSummaryProcess {
+func NewTTSSummaryProcess(client *polly.Polly, s3Client *s3.S3, asynqClient *asynq.Client) *TTSSummaryProcess {
 	return &TTSSummaryProcess{
 		PollyClient: client,
+		s3Client:    s3Client,
+		asynqClient: asynqClient,
 	}
 }
 
@@ -54,92 +61,305 @@ const CHARSPERLINE = 25
 const TEMPOSPEED = 1.25 // 1.25x speed should match atempo=1.25 in ffmpeg
 
 func (p *TTSSummaryProcess) HandleTTSSummaryTask(ctx context.Context, t *asynq.Task) error {
+	// Get information for the task
 	data := models.TTSSummaryInformation{}
+	var summary []byte
+
 	if err := json.Unmarshal(t.Payload(), &data); err != nil {
 		return err
 	}
-	log.Printf("Tasked to generate TTS summary for: %s", data.Title)
-	// This generates the TTS Audio
-	/*
-		TTSMp3Input := &polly.SynthesizeSpeechInput{
-			OutputFormat: aws.String("mp3"),
-			Text:         aws.String(data.Summary),
-			VoiceId:      aws.String("Joey"),
-			Engine:       aws.String("standard"),
+
+	// [PRECHECK] : VALIDATE THAT THE SUMMARY EXISTS.
+	_, err := p.s3Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String("lecture-processor"),
+		Key:    aws.String(fmt.Sprintf("%s/Summary.txt", data.EntryID)),
+	})
+	if err != nil {
+		log.Printf("Failure to check if object exists, or object does not exist: %v", err)
+		return err
+	} else {
+		// Get summary from S3
+		result, err := p.s3Client.GetObject(&s3.GetObjectInput{
+			Bucket: aws.String("lecture-processor"),
+			Key:    aws.String(fmt.Sprintf("%s/Summary.txt", data.EntryID)),
+		})
+		if err != nil {
+			log.Printf("Failed to get summary from S3: %v", err)
+			return err
+		}
+		summary, err = io.ReadAll(result.Body)
+		if err != nil {
+			log.Printf("Failed to read summary from S3: %v", err)
+			return err
+		}
+	}
+
+	// [PRECHECK] : DO NOT REPROCESS IF TTS AUDIO ALREADY EXIST
+	log.Printf("Starting to generate TTS for: %s", data.Title)
+	_, err = p.s3Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String("lecture-processor"),
+		Key:    aws.String(fmt.Sprintf("%s/Audio.mp3", data.EntryID)),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound":
+				log.Printf("Audio does not exist, generating audio")
+			default:
+				log.Printf("Failed to check if object exists: %v", err)
+				return err
+			}
+		}
+	}
+	if err != nil {
+		TTSMp3Input := &polly.StartSpeechSynthesisTaskInput{
+			OutputFormat:       aws.String("mp3"),
+			VoiceId:            aws.String("Joey"),
+			Engine:             aws.String("standard"),
+			Text:               aws.String(string(summary)),
+			OutputS3BucketName: aws.String("lecture-processor"),
+			OutputS3KeyPrefix:  aws.String(fmt.Sprintf("%s/Audio-", data.EntryID)),
 		}
 
+		mp3Generation, err := p.PollyClient.StartSpeechSynthesisTask(TTSMp3Input)
+		if err != nil {
+			log.Printf("API to AWS Polly (Audio) Failed: %v", err)
+			return err
+		}
 
-			Mp3Output, err := p.PollyClient.SynthesizeSpeech(TTSMp3Input)
-			if err != nil {
-				log.Printf("API to AWS Polly (Speech) Failed: %v", err)
+		// Constantly check if the audio file has been generated since StartSpeechSynthesisTask is asynchronous
+		// Poll using a ticker until the task is complete or two minutes have passed
+		timeout := time.After(2 * time.Minute)
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+	Mp3Loop:
+		for {
+			select {
+			case <-ticker.C:
+				taskInput := &polly.GetSpeechSynthesisTaskInput{
+					TaskId: mp3Generation.SynthesisTask.TaskId,
+				}
+				task, err := p.PollyClient.GetSpeechSynthesisTask(taskInput)
+				if err != nil {
+					log.Printf("Failed to get task status: %v", err)
+					return err
+				}
+				if task.SynthesisTask.TaskStatus != nil && *task.SynthesisTask.TaskStatus == polly.TaskStatusCompleted {
+					log.Printf("Generated TTS audio for: %s", data.Title)
+
+					// Once generated, we rename the file to Audio.mp3 and remove the lifecycle policy of 72 hours
+					_, err = p.s3Client.CopyObject(&s3.CopyObjectInput{
+						Bucket:     aws.String("lecture-processor"),
+						CopySource: aws.String(fmt.Sprintf("lecture-processor/%s/Audio-.%s.mp3", data.EntryID, *task.SynthesisTask.TaskId)),
+						Key:        aws.String(fmt.Sprintf("%s/Audio.mp3", data.EntryID)),
+					})
+					if err != nil {
+						log.Printf("Failed to copy object (%s): %v", fmt.Sprintf("%s/Audio-.%s.mp3", data.EntryID, *task.SynthesisTask.TaskId), err)
+						return err
+					}
+					_, err = p.s3Client.DeleteObject(&s3.DeleteObjectInput{
+						Bucket: aws.String("lecture-processor"),
+						Key:    aws.String(fmt.Sprintf("%s/Audio-.%s.mp3", data.EntryID, *task.SynthesisTask.TaskId)),
+					})
+					if err != nil {
+						log.Printf("Failed to delete object (%s): %v", fmt.Sprintf("%s/Audio-.%s.mp3", data.EntryID, *task.SynthesisTask.TaskId), err)
+						return err
+					}
+					break Mp3Loop
+				}
+
+			case <-timeout:
+				log.Printf("Failed to generate TTS audio for: %s", data.Title)
+				return errors.New("failed to generate TTS audio")
+			}
+		}
+	} else {
+		log.Printf("Audio already exists for: %s", data.Title)
+	}
+
+	// [PRECHECK] : DO NOT REPROCESS IF TTS MARKS ALREADY EXIST
+	log.Printf("Starting to generate TTS marks for: %s", data.Title)
+	_, err = p.s3Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String("lecture-processor"),
+		Key:    aws.String(fmt.Sprintf("%s/Words.marks", data.EntryID)),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound":
+				log.Printf("Marks do not exist, generating marks")
+			default:
+				log.Printf("Failed to check if object exists: %v", err)
 				return err
 			}
+		}
+	}
+	if err != nil {
+		TTSSubtitlesInput := &polly.StartSpeechSynthesisTaskInput{
+			OutputFormat:       aws.String("json"),
+			Text:               aws.String(string(summary)),
+			VoiceId:            aws.String("Joey"),
+			Engine:             aws.String("standard"),
+			SpeechMarkTypes:    aws.StringSlice([]string{"word"}),
+			OutputS3BucketName: aws.String("lecture-processor"),
+			OutputS3KeyPrefix:  aws.String(fmt.Sprintf("%s/Words-", data.EntryID)),
+		}
 
-			Mp3Fp, err := os.CreateTemp("", "tts-*.mp3")
-			if err != nil {
-				log.Printf("Failed to create temp file: %v", err)
+		subtitlesGeneration, err := p.PollyClient.StartSpeechSynthesisTask(TTSSubtitlesInput)
+		if err != nil {
+			log.Printf("API to AWS Polly (Subtitle) Failed: %v", err)
+			return err
+		}
+
+		// Constantly check if the json file has been generated since StartSpeechSynthesisTask is asynchronous
+		// Poll using a ticker until the task is complete or two minutes have passed
+		timeout := time.After(2 * time.Minute)
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+	WordsLoop:
+		for {
+			select {
+			case <-ticker.C:
+				taskInput := &polly.GetSpeechSynthesisTaskInput{
+					TaskId: subtitlesGeneration.SynthesisTask.TaskId,
+				}
+				task, err := p.PollyClient.GetSpeechSynthesisTask(taskInput)
+				if err != nil {
+					log.Printf("Failed to get task status: %v", err)
+					return err
+				}
+				if task.SynthesisTask.TaskStatus != nil && *task.SynthesisTask.TaskStatus == polly.TaskStatusCompleted {
+					log.Printf("Generated TTS subtitles for: %s", data.Title)
+
+					// Once generated, we rename the file to Words.marks and remove the lifecycle policy of 72 hours
+					_, err = p.s3Client.CopyObject(&s3.CopyObjectInput{
+						Bucket:     aws.String("lecture-processor"),
+						CopySource: aws.String(fmt.Sprintf("lecture-processor/%s/Words-.%s.marks", data.EntryID, *task.SynthesisTask.TaskId)),
+						Key:        aws.String(fmt.Sprintf("%s/Words.marks", data.EntryID)),
+					})
+					if err != nil {
+						log.Printf("Failed to copy object (%s): %v", fmt.Sprintf("%s/Words-.%s.marks", data.EntryID, *task.SynthesisTask.TaskId), err)
+						return err
+					}
+					_, err = p.s3Client.DeleteObject(&s3.DeleteObjectInput{
+						Bucket: aws.String("lecture-processor"),
+						Key:    aws.String(fmt.Sprintf("%s/Words-.%s.marks", data.EntryID, *task.SynthesisTask.TaskId)),
+					})
+					if err != nil {
+						log.Printf("Failed to delete object (%s): %v", fmt.Sprintf("%s/Words-.%s.marks", data.EntryID, *task.SynthesisTask.TaskId), err)
+						return err
+					}
+					break WordsLoop
+				}
+
+			case <-timeout:
+				log.Printf("Failed to generate TTS subtitles for: %s", data.Title)
+				return errors.New("failed to generate TTS subtitles")
+			}
+		}
+	} else {
+		log.Printf("Marks already exist for: %s", data.Title)
+	}
+
+	// [PRECHECK] : DO NOT REPROCESS IF TTS SUBTITLES ALREADY EXIST
+	log.Printf("Starting to generate TTS subtitles for: %s", data.Title)
+	_, err = p.s3Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String("lecture-processor"),
+		Key:    aws.String(fmt.Sprintf("%s/Subtitles.ass", data.EntryID)),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound":
+				log.Printf("Subtitles do not exist, generating subtitles")
+			default:
+				log.Printf("Failed to check if object exists: %v", err)
 				return err
 			}
-			defer Mp3Fp.Close()
-
-			_, err = io.Copy(Mp3Fp, Mp3Output.AudioStream)
-			if err != nil {
-				log.Printf("Failed to write to temp file: %v", err)
-				return err
-			}
-	*/
-
-	// This generates the TTS Subtitles
-	TTSSubtitlesInput := &polly.SynthesizeSpeechInput{
-		OutputFormat:    aws.String("json"),
-		Text:            aws.String(data.Summary),
-		VoiceId:         aws.String("Joey"),
-		Engine:          aws.String("standard"),
-		SpeechMarkTypes: aws.StringSlice([]string{"word"}),
+		}
 	}
-
-	SubtitlesOutput, err := p.PollyClient.SynthesizeSpeech(TTSSubtitlesInput)
 	if err != nil {
-		log.Printf("API to AWS Polly (Subtitle) Failed: %v", err)
-		return err
+		mp3GetResult, err := p.s3Client.GetObject(&s3.GetObjectInput{
+			Bucket: aws.String("lecture-processor"),
+			Key:    aws.String(fmt.Sprintf("%s/Audio.mp3", data.EntryID)),
+		})
+		if err != nil {
+			log.Printf("Failed to get audio from S3: %v", err)
+			return err
+		}
+
+		Mp3Fp, err := os.CreateTemp("", "tts-*.mp3")
+		if err != nil {
+			log.Printf("Failed to create temp file: %v", err)
+			return err
+		}
+		defer os.Remove(Mp3Fp.Name())
+		defer Mp3Fp.Close()
+
+		_, err = io.Copy(Mp3Fp, mp3GetResult.Body)
+		if err != nil {
+			log.Printf("Failed to write to temp file: %v", err)
+			return err
+		}
+		// Convert the TTS Subtitles to ASS Format
+		AssFp, err := os.CreateTemp("", "subtitle-*.ass")
+		if err != nil {
+			log.Printf("Failed to create temp file: %v", err)
+			return err
+		}
+		defer os.Remove(AssFp.Name())
+		defer AssFp.Close()
+
+		// Get data from S3
+		subtitlesGetResult, err := p.s3Client.GetObject(&s3.GetObjectInput{
+			Bucket: aws.String("lecture-processor"),
+			Key:    aws.String(fmt.Sprintf("%s/Words.marks", data.EntryID)),
+		})
+		if err != nil {
+			log.Printf("Failed to get words from S3: %v", err)
+			return err
+		}
+
+		words, err := ParseJSON(subtitlesGetResult.Body)
+		if err != nil {
+			log.Printf("Failed to parse subtitles")
+			return nil
+		}
+
+		maxDur, err := GetMaxMp3Duration(Mp3Fp)
+		if err != nil {
+			log.Printf("Failed to get Mp3 Duration")
+			return err
+		}
+
+		subtitleLines := GenerateSubtitleLines(words, maxDur)
+
+		if err := GenerateAAS(subtitleLines, AssFp); err != nil {
+			log.Printf("Failed to insert subtitles")
+			return err
+		}
+
+		// Seek to the beginning of the file before uploading
+		if _, err := AssFp.Seek(0, io.SeekStart); err != nil {
+			log.Printf("Failed to seek to the beginning of the file: %v", err)
+			return err
+		}
+
+		_, err = p.s3Client.PutObject(&s3.PutObjectInput{
+			Bucket:      aws.String("lecture-processor"),
+			Key:         aws.String(fmt.Sprintf("%s/Subtitles.ass", data.EntryID)),
+			ContentType: aws.String("application/x-ass"),
+			Body:        AssFp,
+		})
+		if err != nil {
+			log.Printf("Failed to upload subtitle file to S3")
+			return err
+		}
+
+		log.Printf("Generated TTS subtitles for: %s ", data.Title)
+	} else {
+		log.Printf("Subtitles already exist for: %s", data.Title)
 	}
-
-	// Convert the TTS Subtitles to ASS Format
-	AssFp, err := os.CreateTemp("", "subtitle-*.ass")
-	if err != nil {
-		log.Printf("Failed to create temp file: %v", err)
-		return err
-	}
-	// defer os.Remove(AssFp.Name())
-	defer AssFp.Close()
-
-	words, err := ParseJSON(SubtitlesOutput.AudioStream)
-	if err != nil {
-		log.Printf("Failed to parse subtitles")
-		return nil
-	}
-
-	Mp3Fp, err := os.Open("c:/Users/Kanis/Desktop/tts.mp3")
-	if err != nil {
-		log.Printf("Unable to open Subtitle File")
-		return err
-	}
-	defer Mp3Fp.Close()
-
-	maxDur, err := GetMaxMp3Duration(Mp3Fp)
-	if err != nil {
-		log.Printf("Failed to get Mp3 Duration")
-		return err
-	}
-
-	subtitleLines := GenerateSubtitleLines(words, maxDur)
-
-	if err := GenerateAAS(subtitleLines, AssFp); err != nil {
-		log.Printf("Failed to insert subtitles")
-		return err
-	}
-
-	log.Printf("Generated TTS summary for: %s", data.Title)
 
 	return nil
 }

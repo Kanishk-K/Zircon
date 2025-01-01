@@ -1,14 +1,19 @@
 package tasks
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/models"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hibiken/asynq"
 	"github.com/openai/openai-go"
 )
@@ -16,12 +21,16 @@ import (
 const TypeSummarizeTranscription = "transcribe:summarize"
 
 type SummarizeTranscriptionProcess struct {
-	LLMClient *openai.Client
+	LLMClient   *openai.Client
+	s3Client    *s3.S3
+	asynqClient *asynq.Client
 }
 
-func NewSummarizeTranscriptionProcess(client *openai.Client) *SummarizeTranscriptionProcess {
+func NewSummarizeTranscriptionProcess(client *openai.Client, s3Client *s3.S3, asynqClient *asynq.Client) *SummarizeTranscriptionProcess {
 	return &SummarizeTranscriptionProcess{
-		LLMClient: client,
+		LLMClient:   client,
+		s3Client:    s3Client,
+		asynqClient: asynqClient,
 	}
 }
 
@@ -38,23 +47,75 @@ func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx con
 	if err := json.Unmarshal(t.Payload(), &data); err != nil {
 		return err
 	}
-	log.Printf("Tasked to summarize transcript titled: %s", data.Title)
 
-	var transcriptData string
-	if err := downloadTranscript(&transcriptData, data.TranscriptLink); err != nil {
-		log.Printf("Failed to download transcript: %v", err)
-		return err
-	}
-
-	// Generate the summary
-	summary, err := p.generateSummary(ctx, &transcriptData)
+	// Check if the location already exists in s3. If it does then skip this processing
+	_, err := p.s3Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String("lecture-processor"),
+		Key:    aws.String(fmt.Sprintf("%s/Summary.txt", data.EntryID)),
+	})
 	if err != nil {
-		log.Printf("Failed to generate summary: %v", err)
-		return err
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound":
+				break
+			default:
+				log.Printf("Failed to check if object exists: %v", err)
+				return err
+			}
+		}
 	}
 
-	// Upload summary to S3
-	log.Println(summary)
+	if err != nil {
+		log.Printf("Did not find on S3, tasked to process: %s", data.Title)
+
+		var transcriptData string
+		if err := downloadTranscript(&transcriptData, data.TranscriptLink); err != nil {
+			log.Printf("Failed to download transcript: %v", err)
+			return err
+		}
+
+		// Generate the summary
+		summary, err := p.generateSummary(ctx, &transcriptData)
+		if err != nil {
+			log.Printf("Failed to generate summary: %v", err)
+			return err
+		}
+
+		// Upload summary to S3
+		_, err = p.s3Client.PutObject(&s3.PutObjectInput{
+			Bucket:      aws.String("lecture-processor"),
+			Key:         aws.String(fmt.Sprintf("%s/Summary.txt", data.EntryID)),
+			ContentType: aws.String("text/plain"),
+			Body:        bytes.NewReader([]byte(summary)),
+		})
+		if err != nil {
+			log.Printf("Failed to upload summary to S3: %v", err)
+			return err
+		}
+		log.Printf("Uploaded summary to S3: %s", data.Title)
+	} else {
+		log.Printf("Found on S3, skipping processing: %s", data.Title)
+	}
+
+	// Check if TTS Summary was requested, if so then schedule the task
+	if data.BackgroundVideo != "none" {
+		jobInfo := &models.TTSSummaryInformation{
+			EntryID:         data.EntryID,
+			Title:           data.Title,
+			BackgroundVideo: data.BackgroundVideo,
+		}
+		task, err := NewTTSSummaryTask(jobInfo)
+		if err != nil {
+			log.Println("Failed to create task: ", err)
+			return err
+		}
+		// Enqueue the task
+		_, err = p.asynqClient.Enqueue(task)
+		if err != nil {
+			log.Println("Failed to enqueue task", err)
+			return err
+		}
+	}
 
 	return nil
 }
@@ -83,11 +144,11 @@ func (p *SummarizeTranscriptionProcess) generateSummary(ctx context.Context, tra
 	chatCompletion, err := p.LLMClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(
-				"You are an instructor at a university. You are tasked to summarize a lecture. Write it in the perspective as if you were explaining it verbally to a student. Do not include any formatting including latex, images, or code. Do not include a preface of any kind. Provide thorough explanations of each concept discussed. Provide context to all examples.  Begin your response with a high level introduction to the topics that will be discussed.",
+				"You are an instructor at a university. You are tasked to teach a lecture. Be extensive in your descriptions. Write it in the perspective as if you were explaining it verbally to a student. Do not include any formatting including latex, images, or code. Do not include a preface of any kind. Provide thorough explanations of each concept discussed. Provide context to all examples.  Begin your response with a high level introduction to the topics that will be discussed.",
 			),
 			openai.UserMessage(*transcriptData),
 		}),
-		Model: openai.F(openai.ChatModelGPT4o),
+		Model: openai.F(openai.ChatModelGPT4oMini),
 	})
 
 	if err != nil {
