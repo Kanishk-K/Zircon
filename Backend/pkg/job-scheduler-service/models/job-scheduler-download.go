@@ -21,3 +21,9 @@ type TTSSummaryInformation struct {
 	Title           string `json:"title"`
 	BackgroundVideo string `json:"backgroundVideo"`
 }
+
+type GenerateVideoInformation struct {
+	EntryID         string `json:"entryID"`
+	Title           string `json:"title"`
+	BackgroundVideo string `json:"backgroundVideo"`
+}

@@ -361,6 +361,23 @@ func (p *TTSSummaryProcess) HandleTTSSummaryTask(ctx context.Context, t *asynq.T
 		log.Printf("Subtitles already exist for: %s", data.Title)
 	}
 
+	task, err := NewGenerateVideoTask(&models.GenerateVideoInformation{
+		EntryID:         data.EntryID,
+		Title:           data.Title,
+		BackgroundVideo: data.BackgroundVideo,
+	})
+	if err != nil {
+		log.Printf("Failed to generate Video Task")
+		return err
+	}
+	_, err = p.asynqClient.Enqueue(task)
+	if err != nil {
+		log.Printf("Failed to queue Video Generation")
+		return err
+	}
+
+	log.Printf("Finished TTS processing: %s", data.Title)
+
 	return nil
 }
 

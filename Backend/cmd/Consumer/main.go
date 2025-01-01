@@ -67,6 +67,7 @@ func main() {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient, s3Client, asynqClient).HandleSummarizeTranscriptionTask)
 	mux.HandleFunc(tasks.TypeTTSSummary, tasks.NewTTSSummaryProcess(pollyClient, s3Client, asynqClient).HandleTTSSummaryTask)
+	mux.HandleFunc(tasks.TypeGenerateVideo, tasks.NewGenerateVideoProcess(s3Client).HandleGenerateVideoTask)
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {

@@ -18,7 +18,7 @@ import (
 	"github.com/openai/openai-go"
 )
 
-const TypeSummarizeTranscription = "transcribe:summarize"
+const TypeSummarizeTranscription = "summary:genSummary"
 
 type SummarizeTranscriptionProcess struct {
 	LLMClient   *openai.Client
@@ -116,6 +116,8 @@ func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx con
 			return err
 		}
 	}
+
+	log.Printf("Finished processing: %s", data.Title)
 
 	return nil
 }
