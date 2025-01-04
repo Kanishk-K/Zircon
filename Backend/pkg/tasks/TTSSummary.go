@@ -54,10 +54,10 @@ type subtitleWord struct {
 type subtitleLine struct {
 	Start int
 	End   int
-	Text  string
+	Text  []subtitleWord
 }
 
-const CHARSPERLINE = 25
+const CHARSPERLINE = 27
 const TEMPOSPEED = 1.25 // 1.25x speed should match atempo=1.25 in ffmpeg
 
 func (p *TTSSummaryProcess) HandleTTSSummaryTask(ctx context.Context, t *asynq.Task) error {
@@ -431,21 +431,25 @@ func GenerateSubtitleLines(words []subtitleWord, maxTime int) []subtitleLine {
 	// If there are no more words, set the end as the maxTime
 	var lines []subtitleLine
 	var line subtitleLine
-	var lineText string
+	var lineText []subtitleWord
+	var strLen int
 	for i, word := range words {
 		if i == 0 {
 			line.Start = word.Time
-			lineText = word.Value
+			lineText = append(lineText, word)
+			strLen = len(word.Value)
 		} else {
-			if len(lineText)+len(word.Value)+1 <= CHARSPERLINE {
-				lineText += " " + word.Value
+			if strLen+len(word.Value)+1 <= CHARSPERLINE {
+				lineText = append(lineText, word)
+				strLen += len(word.Value) + 1
 			} else {
-				line.End = word.Time - 5
+				line.End = word.Time - 10
 				line.Text = lineText
 				lines = append(lines, line)
 				line = subtitleLine{}
-				line.Start = word.Time + 5
-				lineText = word.Value
+				line.Start = word.Time + 10
+				lineText = []subtitleWord{word}
+				strLen = len(word.Value)
 			}
 		}
 		if i == len(words)-1 {
@@ -484,6 +488,8 @@ func (line subtitleLine) endAsString() string {
 	return line.timeAsString(line.End)
 }
 
+const HIGHLIGHT_COLOR = "\\1c&HF755A8&"
+
 func GenerateAAS(lines []subtitleLine, aasFptr *os.File) error {
 	// Write the Static Script Info Header
 	aasFptr.WriteString("[Script Info]\n")
@@ -494,13 +500,35 @@ func GenerateAAS(lines []subtitleLine, aasFptr *os.File) error {
 	// Write the V4+ Styles Header
 	aasFptr.WriteString("[V4+ Styles]\n")
 	aasFptr.WriteString("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
-	aasFptr.WriteString("Style: Default,Impact,50,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,4,4,2,10,10,10,1\n\n")
+	aasFptr.WriteString("Style: Default,Berlin Sans FB,50,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,4,4,2,10,10,10,1\n\n")
 
 	// Write The Events Header
 	aasFptr.WriteString("[Events]\n")
 	aasFptr.WriteString("Format: Layer, Start, End, Style, Text\n")
 	for _, line := range lines {
-		aasFptr.WriteString("Dialogue: 0," + line.startAsString() + "," + line.endAsString() + ",Default,{\\an5\\pos(540,960)\\fscx160\\fscy160\\alpha&HFF&\\t(0,75,\\alpha&H00&)\\t(0,75,\\fscx220\\fscy220)\\t(75,150,\\fscx200\\fscy200)\\}" + line.Text + "\n")
+		aasFptr.WriteString("Dialogue: 0," + line.startAsString() + "," + line.endAsString() + ",Default,{\\an5\\pos(540,960)\\fscx120\\fscy120\\alpha&HFF&\\t(0,35,\\alpha&H00&)\\t(0,35,\\fscx170\\fscy170)\\t(35,75,\\fscx160\\fscy160)\\}")
+		for i, word := range line.Text {
+			// Format should generate as follows: {\1c&HFFFFFF&\t(start,start,HIGHLIGHT_COLOR)\t(end,end,\1c&HFFFFFF&)}Word
+			// If it is the first word then start is 0.
+			// If the word is the last word then set the end as the duration (line.End - line.Start). Then move to the next line.
+
+			// Starting the line.
+			startOffset := line.Text[0].Time
+			if i == 0 {
+				// Start at 75 which is after the pop out animations occur.
+				aasFptr.WriteString(fmt.Sprintf("{\\1c&HFFFFFF&\\t(75,75,%s)", HIGHLIGHT_COLOR))
+			} else {
+				prevText := line.Text[i-1].Value
+				aasFptr.WriteString(fmt.Sprintf("\\t(%d,%d,\\1c&HFFFFFF&)}%s ", word.Time-startOffset, word.Time-startOffset, prevText))
+				aasFptr.WriteString(fmt.Sprintf("{\\1c&HFFFFFF&\\t(%d,%d,%s)", word.Time-startOffset, word.Time-startOffset, HIGHLIGHT_COLOR))
+			}
+
+			// Ending the line
+			if i == len(line.Text)-1 {
+				aasFptr.WriteString(fmt.Sprintf("\\t(%d,%d,\\1c&HFFFFFF&)}%s", line.End-startOffset, line.End-startOffset, word.Value))
+			}
+		}
+		aasFptr.WriteString("\n")
 	}
 	return nil
 }

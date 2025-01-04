@@ -81,7 +81,7 @@ func (p *GenerateVideoProcess) HandleGenerateVideoTask(ctx context.Context, t *a
 		log.Printf("Error in creating temp directory %v", err)
 		return err
 	}
-	// defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir)
 
 	// Create location for mp3 file and copy data
 	tempMp3Ptr, err := os.CreateTemp(tempDir, "vidGen-*.mp3")
@@ -131,7 +131,7 @@ func (p *GenerateVideoProcess) HandleGenerateVideoTask(ctx context.Context, t *a
 		log.Printf("Failed to create an output location for the file.")
 		return err
 	}
-	// defer os.Remove(outputPtr.Name())
+	defer os.Remove(outputPtr.Name())
 	defer outputPtr.Close() // No need to actually modify the file, we just need the location for an S3 upload later.
 
 	dir, err := os.Getwd()
@@ -148,6 +148,19 @@ func (p *GenerateVideoProcess) HandleGenerateVideoTask(ctx context.Context, t *a
 	err = cmd.Run()
 	if err != nil {
 		log.Printf("Error in running ffmpeg command: %v", err)
+		return err
+	}
+
+	// Upload the video to S3
+	_, err = p.s3Client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String("lecture-processor"),
+		Key:         aws.String(fmt.Sprintf("%s/%s.mp4", data.EntryID, data.BackgroundVideo)),
+		ContentType: aws.String("video/mp4"),
+		Body:        outputPtr,
+	})
+
+	if err != nil {
+		log.Printf("Failed to upload video to S3: %v", err)
 		return err
 	}
 
