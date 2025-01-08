@@ -143,8 +143,6 @@ func (p *GenerateVideoProcess) HandleGenerateVideoTask(ctx context.Context, t *a
 
 	cmd := exec.Command("ffmpeg", "-y", "-i", backgroundVideo, "-i", filepath.Base(tempMp3Ptr.Name()), "-vf", fmt.Sprintf("subtitles='%s'", filepath.Base(subtitlePtr.Name())), "-filter:a", "atempo=1.25", "-c:v", "libx264", "-c:a", "aac", "-crf", "30", "-shortest", filepath.Base(outputPtr.Name()))
 	cmd.Dir = tempDir
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
 	err = cmd.Run()
 	if err != nil {
 		log.Printf("Error in running ffmpeg command: %v", err)

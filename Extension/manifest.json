@@ -29,6 +29,6 @@
     "service_worker": "background.js"
   },
   "web_accessible_resources": [],
-  "permissions": ["storage"],
+  "permissions": ["storage", "management", "scripting", "tabs"],
   "host_permissions": ["http://localhost:8080/*"]
 }

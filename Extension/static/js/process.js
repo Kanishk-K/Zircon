@@ -75,51 +75,67 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     timeline = document.getElementById("process-ongoing");
     toServer = document.getElementById("process-to-server");
 
-    submitButton.onclick = () => {
-      // Harvest the data from the form
-      const submissionData = {
-        entryID: msg.data.entryID,
-        transcript: msg.data.transcript,
-        title: msg.data.title,
-        notes: notesButton.checked,
-        summarize: summarizeButton.checked,
-        backgroundVideo: videoDropdown.value,
-      };
-      // Disable buttons so user can't submit again
-      notesButton.disabled = true;
-      summarizeButton.disabled = true;
-      videoDropdown.disabled = true;
-      submitButton.disabled = true;
-      // Show to the user
-      toServer.innerText = "Sending to server...";
-      timeline.classList.remove("hidden");
-      // Send data to the server for processing (SERVERHOST/process)
-      fetch(`${SERVERHOST}/process`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submissionData),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(
-              `Communication to server failed! status: ${response.status}`
-            );
-          }
-          return response.json();
-        })
-        .then((data) => {
-          toServer.classList.add("success");
-          toServer.innerText = data.message;
-        })
-        .catch((error) => {
-          console.log(error);
-          toServer.classList.add("error");
-          toServer.innerText = error.message;
-        });
-      content.classList.remove("hidden");
-    };
+    chrome.storage.local.get("AUTH", function (data) {
+      if (data.AUTH !== undefined && data.AUTH.token !== undefined) {
+        submitButton.onclick = () => {
+          // Harvest the data from the form
+          const submissionData = {
+            entryID: msg.data.entryID,
+            transcript: msg.data.transcript,
+            title: msg.data.title,
+            notes: notesButton.checked,
+            summarize: summarizeButton.checked,
+            backgroundVideo: videoDropdown.value,
+          };
+          // Disable buttons so user can't submit again
+          notesButton.disabled = true;
+          summarizeButton.disabled = true;
+          videoDropdown.disabled = true;
+          submitButton.disabled = true;
+          // Show to the user
+          toServer.innerText = "Sending to server...";
+          timeline.classList.remove("hidden");
+          // Send data to the server for processing (SERVERHOST/process)
+          fetch(`${SERVERHOST}/process`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${data.AUTH.token}`,
+            },
+            body: JSON.stringify(submissionData),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                switch (response.status) {
+                  case 401:
+                    throw new Error(
+                      `Unable to authorize with server, please reauthenticate!`
+                    );
+                  default:
+                    throw new Error(
+                      `Communication to server failed! status: ${response.status}`
+                    );
+                }
+              }
+              return response.json();
+            })
+            .then((data) => {
+              toServer.classList.add("success");
+              toServer.innerText = data.message;
+            })
+            .catch((error) => {
+              console.log(error);
+              toServer.classList.add("error");
+              toServer.innerText = error.message;
+            });
+          content.classList.remove("hidden");
+        };
+      } else {
+        submitButton.disabled = true;
+        summarizeButton.disabled = true;
+        notesButton.disabled = true;
+      }
+    });
 
     content.classList.remove("hidden");
   }

@@ -8,9 +8,14 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 
+	authRouter "github.com/Kanishk-K/UniteDownloader/Backend/pkg/auth-service/router"
+	authService "github.com/Kanishk-K/UniteDownloader/Backend/pkg/auth-service/services"
 	jobSchedulerRouter "github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/router"
 	jobSchedulerService "github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/services"
+	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/shared/authutil"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/shared/handlerutil"
 )
 
@@ -28,17 +33,34 @@ func main() {
 		fmt.Println("No PORT environment variable detected, defaulting to", port)
 	}
 
+	GoogleOauthConfig := &oauth2.Config{
+		RedirectURL:  "http://localhost:8080/callback",
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
+
+	JWTClient := authutil.NewAuthClient([]byte(os.Getenv("JWT_PRIVATE")))
+
 	// Establish redis connection, ensure close is called at the end
 	redisUrl := os.Getenv("REDIS_URL")
 	client := asynq.NewClient(asynq.RedisClientOpt{Addr: redisUrl})
 	defer client.Close()
 
+	// Create an authentication service
+	authService := authService.NewAuthService(GoogleOauthConfig, JWTClient)
+	authServiceRouter := authRouter.NewAuthServiceRouter(authService)
+
 	// Create a new JobSchedulerService
 	jobSchedulerService := jobSchedulerService.NewJobSchedulerService(client)
-	jobSchedulerRouter := jobSchedulerRouter.NewJobSchedulerRouter(jobSchedulerService)
+	jobSchedulerRouter := jobSchedulerRouter.NewJobSchedulerRouter(jobSchedulerService, JWTClient)
 
 	handlerutil.RegisterRoutes(
-		jobSchedulerRouter,
+		authServiceRouter, jobSchedulerRouter,
 	)
 
 	fmt.Println("Starting server on port", port)
