@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/models"
+	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/shared/dynamoClient/services"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hibiken/asynq"
 	"github.com/openai/openai-go"
@@ -21,16 +21,18 @@ import (
 const TypeSummarizeTranscription = "summary:genSummary"
 
 type SummarizeTranscriptionProcess struct {
-	LLMClient   *openai.Client
-	s3Client    *s3.S3
-	asynqClient *asynq.Client
+	LLMClient    *openai.Client
+	s3Client     *s3.S3
+	dynamoClient services.DynamoMethods
+	asynqClient  *asynq.Client
 }
 
-func NewSummarizeTranscriptionProcess(client *openai.Client, s3Client *s3.S3, asynqClient *asynq.Client) *SummarizeTranscriptionProcess {
+func NewSummarizeTranscriptionProcess(client *openai.Client, s3Client *s3.S3, dynamoClient services.DynamoMethods, asynqClient *asynq.Client) *SummarizeTranscriptionProcess {
 	return &SummarizeTranscriptionProcess{
-		LLMClient:   client,
-		s3Client:    s3Client,
-		asynqClient: asynqClient,
+		LLMClient:    client,
+		s3Client:     s3Client,
+		dynamoClient: dynamoClient,
+		asynqClient:  asynqClient,
 	}
 }
 
@@ -42,69 +44,52 @@ func NewSummarizeTranscriptionTask(jobInfo *models.SummarizeInformation) (*asynq
 	return asynq.NewTask(TypeSummarizeTranscription, payload, asynq.Queue("critical"), asynq.MaxRetry(0), asynq.Timeout(60*time.Minute)), nil
 }
 
+// We are tasked to create a summary, if we are here there does not exist an element in the database.
 func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx context.Context, t *asynq.Task) error {
 	data := models.SummarizeInformation{}
 	if err := json.Unmarshal(t.Payload(), &data); err != nil {
 		return err
 	}
 
-	// Check if the location already exists in s3. If it does then skip this processing
-	_, err := p.s3Client.HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String("lecture-processor"),
-		Key:    aws.String(fmt.Sprintf("%s/Summary.txt", data.EntryID)),
+	log.Printf("Generating summary for: %s", data.EntryID)
+
+	var transcriptData string
+	if err := downloadTranscript(&transcriptData, data.TranscriptLink); err != nil {
+		log.Printf("Failed to download transcript: %v", err)
+		return err
+	}
+
+	// Generate the summary
+	summary, err := p.generateSummary(ctx, &transcriptData)
+	if err != nil {
+		log.Printf("Failed to generate summary: %v", err)
+		return err
+	}
+
+	// Upload summary to S3
+	_, err = p.s3Client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String("lecture-processor"),
+		Key:         aws.String(fmt.Sprintf("%s/Summary.txt", data.EntryID)),
+		ContentType: aws.String("text/plain"),
+		Body:        bytes.NewReader([]byte(summary)),
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case "NotFound":
-				break
-			default:
-				log.Printf("Failed to check if object exists: %v", err)
-				return err
-			}
-		}
+		log.Printf("Failed to upload summary to S3: %v", err)
+		return err
 	}
+	log.Printf("Uploaded summary to S3: %s", data.Title)
 
-	if err != nil {
-		log.Printf("Did not find on S3, tasked to process: %s", data.Title)
-
-		var transcriptData string
-		if err := downloadTranscript(&transcriptData, data.TranscriptLink); err != nil {
-			log.Printf("Failed to download transcript: %v", err)
-			return err
-		}
-
-		// Generate the summary
-		summary, err := p.generateSummary(ctx, &transcriptData)
-		if err != nil {
-			log.Printf("Failed to generate summary: %v", err)
-			return err
-		}
-
-		// Upload summary to S3
-		_, err = p.s3Client.PutObject(&s3.PutObjectInput{
-			Bucket:      aws.String("lecture-processor"),
-			Key:         aws.String(fmt.Sprintf("%s/Summary.txt", data.EntryID)),
-			ContentType: aws.String("text/plain"),
-			Body:        bytes.NewReader([]byte(summary)),
-		})
-		if err != nil {
-			log.Printf("Failed to upload summary to S3: %v", err)
-			return err
-		}
-		log.Printf("Uploaded summary to S3: %s", data.Title)
-	} else {
-		log.Printf("Found on S3, skipping processing: %s", data.Title)
-	}
+	// Update DynamoDB
+	p.dynamoClient.UpdateSummary(data.EntryID)
 
 	// Check if TTS Summary was requested, if so then schedule the task
 	if data.BackgroundVideo != "none" {
-		jobInfo := &models.TTSSummaryInformation{
+		jobInfo := &models.GenerateVideoInformation{
 			EntryID:         data.EntryID,
 			Title:           data.Title,
 			BackgroundVideo: data.BackgroundVideo,
 		}
-		task, err := NewTTSSummaryTask(jobInfo)
+		task, err := NewGenerateVideoTask(jobInfo)
 		if err != nil {
 			log.Println("Failed to create task: ", err)
 			return err

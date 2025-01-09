@@ -33,7 +33,7 @@ func (jsr *JobSchedulerRouter) RegisterRoutes() {
 // Handles the video download route
 func (jsr *JobSchedulerRouter) HandleIncomingJob(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		err := jsr.jwtClient.SecureRoute(w, r)
+		claims, err := jsr.jwtClient.SecureRoute(w, r)
 		if err != nil {
 			return
 		}
@@ -42,6 +42,8 @@ func (jsr *JobSchedulerRouter) HandleIncomingJob(w http.ResponseWriter, r *http.
 			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
 			return
 		}
+		// Realistically this should not error as that would be caught by SecureRoute.
+		requestBody.UserID = claims["sub"].(string)
 		// TODO: Validate the contents of the request.
 		// Queue the job
 		err = jsr.service.ScheduleJob(&requestBody)

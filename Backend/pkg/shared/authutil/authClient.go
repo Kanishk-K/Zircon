@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/auth-service/models"
@@ -12,8 +13,8 @@ import (
 
 type AuthClientMethods interface {
 	SignJWT(user *models.ProfileData) (*JWTDetails, error)
-	VerifyJWT(token string) error
-	SecureRoute(w http.ResponseWriter, r *http.Request) error
+	VerifyJWT(token string) (jwt.MapClaims, error)
+	SecureRoute(w http.ResponseWriter, r *http.Request) (jwt.MapClaims, error)
 }
 
 type AuthClient struct {
@@ -35,8 +36,8 @@ type JWTDetails struct {
 func (ac *AuthClient) SignJWT(user *models.ProfileData) (*JWTDetails, error) {
 	expiryTime := time.Now().Add(time.Hour * 24 * 30).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": user.Email,
-		"exp":   expiryTime, // Default standard as described in RFC7519 (https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4)
+		"sub": strings.TrimSuffix(user.Email, "@umn.edu"),
+		"exp": expiryTime, // Default standard as described in RFC7519 (https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4)
 	})
 	tokenString, err := token.SignedString(ac.jwtPrivateKey)
 	if err != nil {
@@ -49,36 +50,37 @@ func (ac *AuthClient) SignJWT(user *models.ProfileData) (*JWTDetails, error) {
 	}, nil
 }
 
-func (ac *AuthClient) VerifyJWT(tokenString string) error {
+func (ac *AuthClient) VerifyJWT(tokenString string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return ac.jwtPrivateKey, nil
 	})
 	if err != nil {
 		log.Printf("Critial error in parsing JWT: %s", err.Error())
-		return err
+		return nil, err
 	}
-	if !token.Valid {
-		return fmt.Errorf("invalid JWT token provided")
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims, nil
+	} else {
+		return nil, fmt.Errorf("invalid JWT token provided")
 	}
-	return nil
 }
 
-func (ac *AuthClient) SecureRoute(w http.ResponseWriter, r *http.Request) error {
+func (ac *AuthClient) SecureRoute(w http.ResponseWriter, r *http.Request) (jwt.MapClaims, error) {
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprint(w, "Missing authorization header (JWT)")
-		return fmt.Errorf("missing authorization header (JWT)")
+		return nil, fmt.Errorf("missing authorization header (JWT)")
 	}
 	// Ensure to add Bearer to the token for good practice
 	tokenString = tokenString[len("Bearer "):]
 
-	err := ac.VerifyJWT(tokenString)
+	claims, err := ac.VerifyJWT(tokenString)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprint(w, "Invalid Token Provided")
-		return fmt.Errorf("invalid token provided")
+		return nil, fmt.Errorf("invalid token provided")
 	}
 
-	return nil
+	return claims, nil
 }

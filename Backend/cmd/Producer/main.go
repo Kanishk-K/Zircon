@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
@@ -16,6 +18,7 @@ import (
 	jobSchedulerRouter "github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/router"
 	jobSchedulerService "github.com/Kanishk-K/UniteDownloader/Backend/pkg/job-scheduler-service/services"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/shared/authutil"
+	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/shared/dynamoClient/services"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/shared/handlerutil"
 )
 
@@ -46,6 +49,19 @@ func main() {
 
 	JWTClient := authutil.NewAuthClient([]byte(os.Getenv("JWT_PRIVATE")))
 
+	// Setup dynamo client
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = "us-east-1"
+	}
+	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			Region: aws.String(region),
+		},
+	}))
+	dynamoClient := services.NewDynamoClient(awsSession)
+
 	// Establish redis connection, ensure close is called at the end
 	redisUrl := os.Getenv("REDIS_URL")
 	client := asynq.NewClient(asynq.RedisClientOpt{Addr: redisUrl})
@@ -56,7 +72,7 @@ func main() {
 	authServiceRouter := authRouter.NewAuthServiceRouter(authService)
 
 	// Create a new JobSchedulerService
-	jobSchedulerService := jobSchedulerService.NewJobSchedulerService(client)
+	jobSchedulerService := jobSchedulerService.NewJobSchedulerService(client, dynamoClient)
 	jobSchedulerRouter := jobSchedulerRouter.NewJobSchedulerRouter(jobSchedulerService, JWTClient)
 
 	handlerutil.RegisterRoutes(

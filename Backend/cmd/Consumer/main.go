@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/shared/dynamoClient/services"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 
 	"github.com/openai/openai-go"
@@ -42,6 +43,7 @@ func main() {
 	}))
 	pollyClient := polly.New(awsSession)
 	s3Client := s3.New(awsSession)
+	dynamoClient := services.NewDynamoClient(awsSession)
 
 	redisUrl := os.Getenv("REDIS_URL")
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: redisUrl})
@@ -65,9 +67,8 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient, s3Client, asynqClient).HandleSummarizeTranscriptionTask)
-	mux.HandleFunc(tasks.TypeTTSSummary, tasks.NewTTSSummaryProcess(pollyClient, s3Client, asynqClient).HandleTTSSummaryTask)
-	mux.HandleFunc(tasks.TypeGenerateVideo, tasks.NewGenerateVideoProcess(s3Client).HandleGenerateVideoTask)
+	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient, s3Client, dynamoClient, asynqClient).HandleSummarizeTranscriptionTask)
+	mux.HandleFunc(tasks.TypeGenerateVideo, tasks.NewGenerateVideoProcess(pollyClient, s3Client, dynamoClient).HandleGenerateVideoTask)
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {
