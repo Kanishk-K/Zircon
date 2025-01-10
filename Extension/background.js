@@ -18,7 +18,7 @@ const RuntimeMessages = {
   // Add a request to store the data
   openProcessPage: async (request) => {
     chrome.storage.local.get("AUTH", async function (data) {
-      if (data.AUTH !== undefined) {
+      if (data.AUTH !== undefined && data.AUTH.expiry > Date.now() / 1000) {
         // If the user is authenticated, send them to the processing page.
         const tab = await chrome.tabs.create({
           url: chrome.runtime.getURL("static/html/process.html"),
@@ -27,6 +27,7 @@ const RuntimeMessages = {
         await chrome.tabs.sendMessage(tab.id, {
           action: "setData",
           data: request.mediaInformation,
+          jwt: data.AUTH.token,
         });
       } else {
         // The user is not authenticated, make them log in before moving forward

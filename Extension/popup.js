@@ -5,7 +5,6 @@ window.addEventListener("load", async (event) => {
     if (data.AUTH !== undefined) {
       // User has a JWT authenticated
       const { email, expiry, token } = data.AUTH;
-      console.log(expiry, Date.now() / 1000);
       if (expiry <= Date.now() / 1000) {
         // User has authenticated before, but that has expired.
         UNAUTH_CONTENT.classList.remove("hidden");

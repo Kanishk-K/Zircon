@@ -29,6 +29,7 @@ func NewJobSchedulerRouter(jss services.JobSchedulerServiceMethods, jwtClient au
 func (jsr *JobSchedulerRouter) RegisterRoutes() {
 	http.HandleFunc("/process", jsr.HandleIncomingJob)
 	http.HandleFunc("/status", jsr.StatusCheck)
+	http.HandleFunc("/existing", jsr.HandleExistingJob)
 }
 
 // Handles the video download route
@@ -82,6 +83,32 @@ func (jsr *JobSchedulerRouter) StatusCheck(w http.ResponseWriter, r *http.Reques
 		response, err := jsr.service.CheckStatus(&requestBody)
 		if err != nil {
 			http.Error(w, "Failed to check status", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
+	}
+}
+
+func (jsr *JobSchedulerRouter) HandleExistingJob(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		_, err := jsr.jwtClient.SecureRoute(w, r)
+		if err != nil {
+			return
+		}
+		requestBody := models.JobStatusRequest{}
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+			return
+		}
+		response, err := jsr.service.JobProcessedContent(&requestBody)
+		if err != nil {
+			http.Error(w, "Failed to check existing job", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

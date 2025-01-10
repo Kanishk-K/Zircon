@@ -7,7 +7,7 @@
   </head>
   <body>
     <div class="layout">
-      <h1 id="logo">UMN Lecture Downloader</h1>
+      <h1 id="logo">UMN Lecture Analyzer</h1>
       <div id="no-content-alert" class="hidden">
         <img src="../icons/warning-circle.svg" />
         <p>
@@ -41,8 +41,8 @@
               <label for="summary">Generate Summary</label>
             </div>
             <div class="form-group">
-              <select id="video" name="video" disabled>
-                <option value="">Make A Selection</option>
+              <select id="video" name="video">
+                <option value="">Video Choice</option>
                 <option value="subway">Subway Surfers</option>
                 <option value="minecraft">Minecraft</option>
                 <option value="soap">Soap</option>
@@ -51,8 +51,7 @@
                 <option value="car">GTA Car</option>
               </select>
               <label for="video"
-                >Select Background Video (<b>Optional Requires Summary</b
-                >)</label
+                >Select Background Video (Generates Summary)</label
               >
               <div id="background-options">
                 <img src="../images/subway.png" id="subway" />
@@ -62,12 +61,29 @@
                 <img src="../images/sand.png" id="sand" />
                 <img src="../images/car.png" id="car" />
               </div>
-              <button id="submit" type="button" disabled>Submit Task</button>
+              <button id="submit" type="button">Submit Task</button>
             </div>
           </form>
         </div>
-        <div class="process hidden" id="process-ongoing">
-          <div class="task-item" id="process-to-server"></div>
+        <div class="process" id="server-response">
+          <div class="card hidden" id="existing-content">
+            <h2>Already Existing Content</h2>
+          </div>
+          <div class="card hidden" id="server-status">
+            <h2>Current Processing Status</h2>
+            <div class="task-item" id="job-status">
+              Submitting job to server...
+            </div>
+            <div class="task-item" id="notes-status">
+              Awaiting notes generation status...
+            </div>
+            <div class="task-item" id="summary-status">
+              Awaiting summary generation status...
+            </div>
+            <div class="task-item" id="video-status">
+              Awaiting video generation status...
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -20,6 +20,7 @@ type JobSchedulerServiceMethods interface {
 	ValidateQuery(jobInfo *models.JobQueueRequest) error
 	ScheduleJob(jobInfo *models.JobQueueRequest) error
 	CheckStatus(jobStatusInfo *models.JobStatusRequest) (*models.JobStatusResponse, error)
+	JobProcessedContent(jobInfo *models.JobStatusRequest) (*models.JobExistingResponse, error)
 }
 
 // This contains the content that JobSchedulerService will need
@@ -71,8 +72,8 @@ func (js *JobSchedulerService) ValidateQuery(jobInfo *models.JobQueueRequest) er
 	}
 
 	// Step 4: Validate that the form is filled out correctly
-	if !jobInfo.Summarize && jobInfo.BackgroundVideo == "" {
-		return errors.New("video was selected but summary was not requested")
+	if jobInfo.BackgroundVideo != "" {
+		jobInfo.Summarize = true
 	}
 
 	return nil
@@ -106,7 +107,7 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobQueueRequest) erro
 
 	// Create a new task to generate notes
 	if jobInfo.Notes {
-		log.Printf("Tasked to generate notes for video titled: %s", jobInfo.Title)
+		log.Printf("Tasked to generate notes for video titled: %s", jobInfo.EntryID)
 	}
 
 	// Create a new task to transcribe the video
@@ -133,7 +134,7 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobQueueRequest) erro
 		videoInfo := &models.GenerateVideoInformation{
 			EntryID:           jobInfo.EntryID,
 			BackgroundVideo:   jobInfo.BackgroundVideo,
-			GenerateSubtitles: jobParams.SubtitlesGenerated,
+			GenerateSubtitles: !jobParams.SubtitlesGenerated,
 		}
 		task, err := tasks.NewGenerateVideoTask(videoInfo)
 		if err != nil {
@@ -155,6 +156,17 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobQueueRequest) erro
 
 func (js *JobSchedulerService) CheckStatus(jobStatusInfo *models.JobStatusRequest) (*models.JobStatusResponse, error) {
 	response := &models.JobStatusResponse{}
+
+	noteJob, err := js.asynqInspector.GetTaskInfo("default", fmt.Sprintf("note:%s", jobStatusInfo.EntryID))
+	switch {
+	case errors.Is(err, asynq.ErrQueueNotFound):
+		return nil, fmt.Errorf("queue %s not found", "default")
+	case errors.Is(err, asynq.ErrTaskNotFound):
+		response.NotesStatus = 0
+	default:
+		response.NotesStatus = noteJob.State
+	}
+
 	summaryJob, err := js.asynqInspector.GetTaskInfo("default", fmt.Sprintf("summary:%s", jobStatusInfo.EntryID))
 	switch {
 	case errors.Is(err, asynq.ErrQueueNotFound):
@@ -176,4 +188,16 @@ func (js *JobSchedulerService) CheckStatus(jobStatusInfo *models.JobStatusReques
 	}
 
 	return response, nil
+}
+
+func (js *JobSchedulerService) JobProcessedContent(jobInfo *models.JobStatusRequest) (*models.JobExistingResponse, error) {
+	jobParams, err := js.dynamoClient.GetJob(jobInfo.EntryID)
+	if err != nil {
+		return nil, err
+	}
+	return &models.JobExistingResponse{
+		NotesGenerated:   jobParams.NotesGenerated,
+		SummaryGenerated: jobParams.SummaryGenerated,
+		VideosAvailable:  jobParams.VideosAvailable,
+	}, nil
 }
