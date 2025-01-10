@@ -38,7 +38,7 @@ func (jsr *JobSchedulerRouter) HandleIncomingJob(w http.ResponseWriter, r *http.
 		if err != nil {
 			return
 		}
-		requestBody := models.JobInformation{}
+		requestBody := models.JobQueueRequest{}
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
 			return

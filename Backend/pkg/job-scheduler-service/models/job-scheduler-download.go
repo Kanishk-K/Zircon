@@ -2,7 +2,7 @@ package models
 
 import "github.com/hibiken/asynq"
 
-type JobInformation struct {
+type JobQueueRequest struct {
 	EntryID         string `json:"entryID"`
 	UserID          string `json:"userID"`
 	TranscriptLink  string `json:"transcript"`
@@ -16,7 +16,7 @@ type JobStatusRequest struct {
 	EntryID string `json:"entryID"`
 }
 
-type JobStatus struct {
+type JobStatusResponse struct {
 	SummarizeStatus asynq.TaskState `json:"summarizeStatus"`
 	VideoStatus     asynq.TaskState `json:"videoStatus"`
 }

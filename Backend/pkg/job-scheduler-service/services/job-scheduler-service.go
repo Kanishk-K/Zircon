@@ -17,9 +17,9 @@ import (
 
 // These are the methods that the JobSchedulerService should implement
 type JobSchedulerServiceMethods interface {
-	ValidateQuery(jobInfo *models.JobInformation) error
-	ScheduleJob(jobInfo *models.JobInformation) error
-	CheckStatus(jobStatusInfo *models.JobStatusRequest) (*models.JobStatus, error)
+	ValidateQuery(jobInfo *models.JobQueueRequest) error
+	ScheduleJob(jobInfo *models.JobQueueRequest) error
+	CheckStatus(jobStatusInfo *models.JobStatusRequest) (*models.JobStatusResponse, error)
 }
 
 // This contains the content that JobSchedulerService will need
@@ -52,7 +52,7 @@ func NewJobSchedulerService(asynqClient *asynq.Client, asynqInspector *asynq.Ins
 // 2. Check that the transcript link is from an authorized source
 // 3. Check that the background video selected is from one of the available options
 // 4. Validate that the form is filled out correctly
-func (js *JobSchedulerService) ValidateQuery(jobInfo *models.JobInformation) error {
+func (js *JobSchedulerService) ValidateQuery(jobInfo *models.JobQueueRequest) error {
 	// Step 1 [TODO]: Check that the user is allowed to submit jobs
 
 	// Step 2: Ensure the transcript link is from an authorized source (https://cdnapi.kaltura.com)
@@ -78,7 +78,7 @@ func (js *JobSchedulerService) ValidateQuery(jobInfo *models.JobInformation) err
 	return nil
 }
 
-func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobInformation) error {
+func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobQueueRequest) error {
 	// Register the job on DynamoDB
 	var jobParams *dynamoModels.JobDocument
 	jobParams, err := js.dynamoClient.GetJob(jobInfo.EntryID)
@@ -153,8 +153,8 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobInformation) error
 	return nil
 }
 
-func (js *JobSchedulerService) CheckStatus(jobStatusInfo *models.JobStatusRequest) (*models.JobStatus, error) {
-	response := &models.JobStatus{}
+func (js *JobSchedulerService) CheckStatus(jobStatusInfo *models.JobStatusRequest) (*models.JobStatusResponse, error) {
+	response := &models.JobStatusResponse{}
 	summaryJob, err := js.asynqInspector.GetTaskInfo("default", fmt.Sprintf("summary:%s", jobStatusInfo.EntryID))
 	switch {
 	case errors.Is(err, asynq.ErrQueueNotFound):
