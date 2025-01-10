@@ -1,5 +1,7 @@
 package models
 
+import "github.com/hibiken/asynq"
+
 type JobInformation struct {
 	EntryID         string `json:"entryID"`
 	UserID          string `json:"userID"`
@@ -10,17 +12,23 @@ type JobInformation struct {
 	BackgroundVideo string `json:"backgroundVideo"`
 }
 
+type JobStatusRequest struct {
+	EntryID string `json:"entryID"`
+}
+
+type JobStatus struct {
+	SummarizeStatus asynq.TaskState `json:"summarizeStatus"`
+	VideoStatus     asynq.TaskState `json:"videoStatus"`
+}
+
 type SummarizeInformation struct {
 	EntryID         string `json:"entryID"`
-	UserID          string `json:"userID"`
 	TranscriptLink  string `json:"transcript"`
-	Title           string `json:"title"`
 	BackgroundVideo string `json:"backgroundVideo"`
 }
 
 type GenerateVideoInformation struct {
-	EntryID         string `json:"entryID"`
-	UserID          string `json:"userID"`
-	Title           string `json:"title"`
-	BackgroundVideo string `json:"backgroundVideo"`
+	EntryID           string `json:"entryID"`
+	BackgroundVideo   string `json:"backgroundVideo"`
+	GenerateSubtitles bool   `json:"generateSubtitles"`
 }

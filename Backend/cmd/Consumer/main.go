@@ -55,12 +55,7 @@ func main() {
 			// Specify how many concurrent workers to use
 			Concurrency: 1,
 			// Optionally specify multiple queues with different priority.
-			Queues: map[string]int{
-				"critical": 3,
-				"default":  2,
-				"low":      1,
-			},
-			StrictPriority: true,
+			Queues: map[string]int{"default": 1},
 			// See the godoc for other configuration options
 		},
 	)

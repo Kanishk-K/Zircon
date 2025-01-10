@@ -28,6 +28,7 @@ func NewJobSchedulerRouter(jss services.JobSchedulerServiceMethods, jwtClient au
 // Registers the routes for the JobSchedulerRouter
 func (jsr *JobSchedulerRouter) RegisterRoutes() {
 	http.HandleFunc("/process", jsr.HandleIncomingJob)
+	http.HandleFunc("/status", jsr.StatusCheck)
 }
 
 // Handles the video download route
@@ -45,6 +46,11 @@ func (jsr *JobSchedulerRouter) HandleIncomingJob(w http.ResponseWriter, r *http.
 		// Realistically this should not error as that would be caught by SecureRoute.
 		requestBody.UserID = claims["sub"].(string)
 		// TODO: Validate the contents of the request.
+		err = jsr.service.ValidateQuery(&requestBody)
+		if err != nil {
+			http.Error(w, "Failed to validate request", http.StatusBadRequest)
+			return
+		}
 		// Queue the job
 		err = jsr.service.ScheduleJob(&requestBody)
 		if err != nil {
@@ -54,6 +60,32 @@ func (jsr *JobSchedulerRouter) HandleIncomingJob(w http.ResponseWriter, r *http.
 		// Respond with a success message in JSON
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(map[string]string{"message": "Job queued successfully"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
+	}
+}
+
+func (jsr *JobSchedulerRouter) StatusCheck(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		_, err := jsr.jwtClient.SecureRoute(w, r)
+		if err != nil {
+			return
+		}
+		requestBody := models.JobStatusRequest{}
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+			return
+		}
+		response, err := jsr.service.CheckStatus(&requestBody)
+		if err != nil {
+			http.Error(w, "Failed to check status", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 			return
 		}

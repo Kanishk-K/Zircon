@@ -55,11 +55,6 @@ const CHARSPERLINE = 27
 const TEMPOSPEED = 1.25 // 1.25x speed should match atempo=1.25 in ffmpeg
 const HIGHLIGHT_COLOR = "\\1c&HF755A8&"
 
-var validVideoChoices = map[string]bool{
-	"subway":    true,
-	"minecraft": true,
-}
-
 /* Producer Call */
 
 func NewGenerateVideoTask(jobInfo *models.GenerateVideoInformation) (*asynq.Task, error) {
@@ -78,17 +73,6 @@ func (p *GenerateVideoProcess) HandleGenerateVideoTask(ctx context.Context, t *a
 	if err := json.Unmarshal(t.Payload(), &data); err != nil {
 		log.Printf("Error unmarshalling payload: %v", err)
 		return err
-	}
-
-	jobParams, err := p.dynamoClient.GetJob(data.EntryID)
-	if err != nil {
-		log.Printf("Failed to get job information: %v", err)
-		return err
-	}
-
-	if _, ok := validVideoChoices[data.BackgroundVideo]; !ok {
-		log.Printf("Invalid theme choice: %s", data.BackgroundVideo)
-		return fmt.Errorf("invalid theme choice: %s", data.BackgroundVideo)
 	}
 
 	log.Printf("Processing video generation for entry: %s", data.EntryID)
@@ -120,7 +104,7 @@ func (p *GenerateVideoProcess) HandleGenerateVideoTask(ctx context.Context, t *a
 	// We may or may NOT have a mp3 AND marks.
 	// If we do, download and generate video. Otherwise generate both files.
 
-	if !jobParams.SubtitlesGenerated {
+	if data.GenerateSubtitles {
 		// Generate the items and upload
 		log.Printf("Failed to find MP3 or Subtitles for %s", data.EntryID)
 		err = p.GenerateMediaFiles(ctx, mp3Fp, subtitlesFp, &data.EntryID)

@@ -66,13 +66,15 @@ func main() {
 	redisUrl := os.Getenv("REDIS_URL")
 	client := asynq.NewClient(asynq.RedisClientOpt{Addr: redisUrl})
 	defer client.Close()
+	inspector := asynq.NewInspector(asynq.RedisClientOpt{Addr: redisUrl})
+	defer inspector.Close()
 
 	// Create an authentication service
 	authService := authService.NewAuthService(GoogleOauthConfig, JWTClient)
 	authServiceRouter := authRouter.NewAuthServiceRouter(authService)
 
 	// Create a new JobSchedulerService
-	jobSchedulerService := jobSchedulerService.NewJobSchedulerService(client, dynamoClient)
+	jobSchedulerService := jobSchedulerService.NewJobSchedulerService(client, inspector, dynamoClient)
 	jobSchedulerRouter := jobSchedulerRouter.NewJobSchedulerRouter(jobSchedulerService, JWTClient)
 
 	handlerutil.RegisterRoutes(

@@ -77,32 +77,35 @@ func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx con
 		log.Printf("Failed to upload summary to S3: %v", err)
 		return err
 	}
-	log.Printf("Uploaded summary to S3: %s", data.Title)
+	log.Printf("Uploaded summary to S3: %s", data.EntryID)
 
 	// Update DynamoDB
 	p.dynamoClient.UpdateSummary(data.EntryID)
 
-	// Check if TTS Summary was requested, if so then schedule the task
-	if data.BackgroundVideo != "none" {
-		jobInfo := &models.GenerateVideoInformation{
-			EntryID:         data.EntryID,
-			Title:           data.Title,
-			BackgroundVideo: data.BackgroundVideo,
-		}
-		task, err := NewGenerateVideoTask(jobInfo)
+	log.Printf("Finished processing: %s", data.EntryID)
+
+	if data.BackgroundVideo != "" {
+		// Generate the video
+		task, err := NewGenerateVideoTask(&models.GenerateVideoInformation{
+			EntryID:           data.EntryID,
+			BackgroundVideo:   data.BackgroundVideo,
+			GenerateSubtitles: true,
+		})
 		if err != nil {
-			log.Println("Failed to create task: ", err)
+			log.Println("Failed to create video task: ", err)
 			return err
 		}
-		// Enqueue the task
-		_, err = p.asynqClient.Enqueue(task)
+		_, err = p.asynqClient.Enqueue(task, asynq.TaskID(
+			fmt.Sprintf("video:%s", data.EntryID)),
+			asynq.Queue("default"),
+			asynq.TaskID(fmt.Sprintf("video:%s", data.EntryID)),
+			asynq.Retention(time.Hour),
+		)
 		if err != nil {
-			log.Println("Failed to enqueue task", err)
+			log.Println("Failed to enqueue video task: ", err)
 			return err
 		}
 	}
-
-	log.Printf("Finished processing: %s", data.Title)
 
 	return nil
 }
