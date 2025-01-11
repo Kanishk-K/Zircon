@@ -102,12 +102,25 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobQueueRequest) erro
 		}
 	}
 
-	// We will create a list of tasks to be executed
-	// This will be aggregated and then enqueued
-
 	// Create a new task to generate notes
-	if jobInfo.Notes {
-		log.Printf("Tasked to generate notes for video titled: %s", jobInfo.EntryID)
+	if jobInfo.Notes && !jobParams.NotesGenerated {
+		notesInfo := &models.NotesInformation{
+			EntryID:        jobInfo.EntryID,
+			TranscriptLink: jobInfo.TranscriptLink,
+		}
+		task, err := tasks.NewGenerateNotesTask(notesInfo)
+		if err != nil {
+			log.Println("Failed to create notes task: ", err)
+			return err
+		}
+		_, err = js.asynqClient.Enqueue(task, asynq.TaskID(fmt.Sprintf("note:%s", jobInfo.EntryID)), asynq.Queue("default"), asynq.Retention(time.Hour))
+		switch {
+		case errors.Is(err, asynq.ErrTaskIDConflict):
+			log.Println("Task already exists, skipping")
+		case err != nil:
+			log.Println("Failed to enqueue notes task: ", err)
+			return err
+		}
 	}
 
 	// Create a new task to transcribe the video
@@ -124,7 +137,7 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobQueueRequest) erro
 		}
 		_, err = js.asynqClient.Enqueue(task, asynq.TaskID(fmt.Sprintf("summary:%s", jobInfo.EntryID)), asynq.Queue("default"), asynq.Retention(time.Hour))
 		switch {
-		case errors.Is(err, asynq.ErrDuplicateTask):
+		case errors.Is(err, asynq.ErrTaskIDConflict):
 			log.Println("Task already exists, skipping")
 		case err != nil:
 			log.Println("Failed to enqueue summarize task: ", err)
@@ -143,7 +156,7 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobQueueRequest) erro
 		}
 		_, err = js.asynqClient.Enqueue(task, asynq.TaskID(fmt.Sprintf("video:%s", jobInfo.EntryID)), asynq.Queue("default"), asynq.Retention(time.Hour))
 		switch {
-		case errors.Is(err, asynq.ErrDuplicateTask):
+		case errors.Is(err, asynq.ErrTaskIDConflict):
 			log.Println("Task already exists, skipping")
 		case err != nil:
 			log.Println("Failed to enqueue video task: ", err)

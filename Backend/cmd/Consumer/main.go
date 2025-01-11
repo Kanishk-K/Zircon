@@ -62,6 +62,7 @@ func main() {
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
+	mux.HandleFunc(tasks.TypeGenerateNotes, tasks.NewGenerateNotesProcess(openAIClient, s3Client, dynamoClient).HandleGenerateNotesTask)
 	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient, s3Client, dynamoClient, asynqClient).HandleSummarizeTranscriptionTask)
 	mux.HandleFunc(tasks.TypeGenerateVideo, tasks.NewGenerateVideoProcess(pollyClient, s3Client, dynamoClient).HandleGenerateVideoTask)
 	// ...register other handlers...

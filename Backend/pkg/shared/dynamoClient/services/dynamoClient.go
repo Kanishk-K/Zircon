@@ -15,6 +15,7 @@ type DynamoMethods interface {
 	// GetUser(userID string) (models.UserDocument, error)
 	GetJob(entryID string) (*models.JobDocument, error)
 	NewJob(newJobData *models.JobDocument) error
+	UpdateNotes(entryID string) error
 	UpdateSummary(entryID string) error
 	UpdateSubtitles(entryID string) error // Implicitly done in AddVideo.
 	AddVideo(entryID string, videoType string) error
@@ -69,6 +70,28 @@ func (dc *DynamoClient) NewJob(newJobData *models.JobDocument) error {
 	})
 	if err != nil {
 		log.Printf("Failed to update job item: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (dc *DynamoClient) UpdateNotes(entryID string) error {
+	updateExpression := "SET notesGenerated = :notesGenerated"
+	_, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
+		TableName: aws.String("Jobs"),
+		Key: map[string]*dynamodb.AttributeValue{
+			"entryID": {
+				S: aws.String(entryID),
+			},
+		},
+		UpdateExpression: aws.String(updateExpression),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":notesGenerated": {BOOL: aws.Bool(true)},
+		},
+		ConditionExpression: aws.String("attribute_exists(entryID)"),
+	})
+	if err != nil {
+		log.Printf("Failed to update notes in DynamoDB: %v", err)
 		return err
 	}
 	return nil

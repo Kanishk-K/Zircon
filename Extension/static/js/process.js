@@ -134,7 +134,7 @@ function formLogic() {
 }
 
 function updateIndividualStatus(statusElement, category, status) {
-  if (status == 0) {
+  if (status == 0 || status == 5) {
     statusElement.innerHTML = `<b>${category}: </b> ${statusMapping[status]}`;
     statusElement.classList.add("error");
   } else if (status == 6) {

@@ -38,3 +38,8 @@ type GenerateVideoInformation struct {
 	BackgroundVideo   string `json:"backgroundVideo"`
 	GenerateSubtitles bool   `json:"generateSubtitles"`
 }
+
+type NotesInformation struct {
+	EntryID        string `json:"entryID"`
+	TranscriptLink string `json:"transcript"`
+}
