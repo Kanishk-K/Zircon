@@ -134,7 +134,7 @@ func (p *SummarizeTranscriptionProcess) generateSummary(ctx context.Context, tra
 	chatCompletion, err := p.LLMClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(
-				"You are an instructor at a university. You are tasked to teach a lecture. Be extensive in your descriptions. Write it in the perspective as if you were explaining it verbally to a student. Do not include any formatting including latex, images, markdown, lists, or code. Do not include a preface of any kind. Provide thorough explanations of each concept discussed. Provide context to all examples.",
+				"Imagine you are a university instructor preparing to deliver a lecture. Your goal is to explain concepts in great detail, ensuring everything is clear and accessible, even abstract ideas. Approach the explanations as if you're speaking directly to a student, weaving simple relatable examples into your teaching. Skip any formatting: no bullet points, code, images, or structured sections. Dive into each concept thoroughly, breaking it down step-by-step, using approachable analogies to make even the most complex ideas easy to understand. Always provide enough context for your examples to make them meaningful and engaging.",
 			),
 			openai.UserMessage(*transcriptData),
 		}),
