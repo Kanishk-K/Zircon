@@ -3,7 +3,7 @@ import { FaGithub, FaHouse, FaLinkedin } from "react-icons/fa6";
 
 export default function Footer() {
     return (
-        <footer className="flex flex-row w-full p-6 max-w-[1376px] border-brand border-t-[1px] justify-center items-center md:justify-between">
+        <footer className="flex flex-row w-full p-6 max-w-[1376px] border-brand border-t-[1px] justify-center items-center md:justify-between mt-8">
                 <div className="flex flex-col items-center sm:flex-row bg-card border-neutral-800 border-2 rounded-md p-4">
                     <Image src={"/pfp.jpg"} alt="Profile Picture" width={2538} height={2538} className="rounded-full w-32 h-auto" />
                     <div className="flex flex-col justify-between p-4 text-center sm:text-left gap-3">

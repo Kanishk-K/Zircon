@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  h1 {
+    @apply text-5xl lg:text-7xl font-semibold leading-snug;
+  }
+  p {
+    @apply text-lg lg:text-xl;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

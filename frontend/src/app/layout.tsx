@@ -25,7 +25,7 @@ export default function RootLayout({
         className={`${geist.className} antialiased`}
       >
         <Navbar />
-        <main>
+        <main className="px-8 2xl:px-0">
           {children}
         </main>
         <Footer />

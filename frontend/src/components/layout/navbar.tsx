@@ -3,7 +3,7 @@ import { FaGithub } from "react-icons/fa6";
 
 export default function Navbar() {
     return (
-        <nav className="flex flex-row w-full justify-between p-6 max-w-[1376px]">
+        <nav className="flex flex-row w-full justify-between p-6 max-w-[1376px] mb-8">
             <Image className="h-10 w-auto" src="/vercel.svg" alt="Logo" width={173} height={150} />
             <div className="hidden md:flex flex-row items-center gap-6">
                 <a href="#" className="hover:text-white">About</a>
