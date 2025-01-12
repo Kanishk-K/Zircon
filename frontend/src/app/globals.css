@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --color-brand: #820000;
+  --color-card: #1d1d1d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #131313;
+    --foreground: #b8b8b8;
+    --color-brand: #c59f63;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  /* Ensure we aren't taking the entire screen, use only a reasonable size */
+  max-width: 1376px;
+  width: 100%;
+  min-height: 60vh;
+}
