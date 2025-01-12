@@ -10,9 +10,9 @@ export default function Footer() {
                         <span className="font-bold text-xl">Kanishk Kacholia</span>
                         <span className="hidden sm:block text-sm">Software Engineer</span>
                         <div className="flex flex-row gap-4 justify-center sm:justify-start">
-                            <a href="#" className="hover:text-white transition-colors duration-300"><FaGithub size={"1.5em"}/></a>
-                            <a href="#" className="hover:text-[#0077B5] transition-colors duration-300"><FaLinkedin size={"1.5em"}/></a>
-                            <a href="#" className="hover:text-brand transition-colors duration-300"><FaHouse size={"1.5em"} /></a>
+                            <a href="https://github.com/Kanishk-K" className="text-brand"><FaGithub size={"1.5em"}/></a>
+                            <a href="https://www.linkedin.com/in/kanishk-kacholia/" className="text-brand"><FaLinkedin size={"1.5em"}/></a>
+                            <a href="https://www.kanishkkacholia.com/" className="text-brand"><FaHouse size={"1.5em"} /></a>
                         </div>
                     </div>
                 </div>
