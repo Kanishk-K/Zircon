@@ -4,7 +4,10 @@
 
 @layer base {
   h1 {
-    @apply text-5xl lg:text-7xl font-semibold leading-snug;
+    @apply text-white text-5xl lg:text-7xl font-semibold leading-snug;
+  }
+  h2 {
+    @apply text-white text-4xl lg:text-6xl font-semibold leading-snug;
   }
   p {
     @apply text-lg lg:text-xl;
@@ -39,4 +42,8 @@ main {
   max-width: 1376px;
   width: 100%;
   min-height: 60vh;
+}
+
+.blur-image {
+  mask-image: linear-gradient(180deg, #000 50%, transparent 90%);
 }
