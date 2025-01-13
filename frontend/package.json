@@ -21,7 +21,9 @@
     "next-mdx-remote": "^5.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-icons": "^5.4.0"
+    "react-icons": "^5.4.0",
+    "rehype-pretty-code": "^0.14.0",
+    "shiki": "^1.26.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

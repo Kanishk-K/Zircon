@@ -93,6 +93,9 @@ export const components = {
     },
     strong : (props: StrongProps) => {
         return <strong className="font-bold text-foreground" {...props} />;
+    },
+    hr : () => {
+        return <span className="block w-full my-10" />;
     }
 }
 

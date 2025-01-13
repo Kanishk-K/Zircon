@@ -84,7 +84,7 @@ func (p *GenerateNotesProcess) GenerateNotes(ctx context.Context, transcriptData
 	chatCompletion, err := p.LLMClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(
-				"You are an instructor at a university. You are provided a transcript of a lecture. You are tasked with generated detailed notes for the lecture entirely in markdown. Do not include any unnecessary information or prefaces. When given a topic explain it extensively as if the audience has no prior knowledge of the subject.",
+				"Imagine you are a university instructor generating a post-lecture note sheet for students. Your goal is to explain concepts in great detail, ensuring that all concepts are clear, even abstract ideas. Assume that the audience has little to no experience in these ideas. Exclusively generate notes in markdown format using paragraphs, titles, and lists. Do NOT include images, links, code blocks, checklists, LaTeX, line breaks, or tables. Dive into each concept thoroughly, breaking it down step-by-step.",
 			),
 			openai.UserMessage(*transcriptData),
 		}),
