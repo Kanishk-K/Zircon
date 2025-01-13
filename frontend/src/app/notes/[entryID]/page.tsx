@@ -30,7 +30,7 @@ export default async function RemoteMDXPage({params}:{params: Promise<{entryID: 
         },
     })
     const dbResponse = await dbClient.send(command);
-    if (!dbResponse.Item) {
+    if (!dbResponse.Item || !dbResponse.Item.notesGenerated) {
         try {
             throw new Error('Entry not found in database!');
         } catch (e) {
@@ -39,19 +39,23 @@ export default async function RemoteMDXPage({params}:{params: Promise<{entryID: 
         }
     } 
 
-    const s3Response = await s3Client.send(new GetObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME as string,
-        Key: `${entryID}/Notes.md`,
-    }));
-    if (!s3Response.Body) {
-        try {
-            throw new Error('Entry not found in S3!');
-        } catch (e) {
-            console.log (e);
-            redirect("/")
+    try {
+        const s3Response = await s3Client.send(new GetObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME as string,
+            Key: `${entryID}/Notes.md`,
+        }));
+        if (!s3Response.Body) {
+            try {
+                throw new Error('No body in S3 response!');
+            } catch (e) {
+                console.log(e);
+                redirect("/");
+            }
         }
+        const text = await s3Response.Body.transformToString();
+        return <MDXRemote components={components} source={text} />;
+    } catch (e) {
+        console.log(e);
+        redirect("/");
     }
-    const text = await s3Response.Body.transformToString();
-
-    return <MDXRemote components={components} source={text} />;
 }
