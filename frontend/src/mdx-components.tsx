@@ -1,4 +1,3 @@
-import type { MDXComponents } from 'mdx/types'
 import { ComponentPropsWithoutRef } from 'react';
 
 import localFont from "next/font/local";
@@ -16,45 +15,11 @@ const genericFont = localFont({
 
 
 type HeadingProps = ComponentPropsWithoutRef<'h1'>;
+type ParagraphProps = ComponentPropsWithoutRef<'p'>;
+type ListItemProps = ComponentPropsWithoutRef<'li'>;
+type CodeProps = ComponentPropsWithoutRef<'code'>;
+type StrongProps = ComponentPropsWithoutRef<'strong'>;
 
-export function useMDXComponents(components: MDXComponents): MDXComponents {
-  return {
-    h1: (props: HeadingProps) => {
-        return <h1 className={`${headingFont.className} font-bold text-4xl lg:text-5xl pt-12 mb-0`} {...props} />;
-    },
-    h2: (props: HeadingProps) => {
-        return <h2 className={`${headingFont.className} font-bold text-3xl lg:text-4xl mt-8 mb-3`} {...props} />;
-    },
-    h3 : (props: HeadingProps) => {
-        return <h3 className={`${headingFont.className} font-bold text-2xl lg:text-3xl mt-8 mb-3`} {...props} />;
-    },
-    h4 : (props: HeadingProps) => {
-        return <h4 className={`${headingFont.className} font-bold text-xl lg:text-2xl mt-8 mb-3`} {...props} />;
-    },
-    h5 : (props: HeadingProps) => {
-        return <h5 className={`${headingFont.className} font-bold text-lg lg:text-xl mt-8 mb-3`} {...props} />;
-    },
-    h6 : (props: HeadingProps) => {
-        return <h6 className={`${headingFont.className} font-bold text-base lg:text-lg mt-8 mb-3`} {...props} />;
-    },
-    p : (props) => {
-        return <p className={`${genericFont.className} text-lg lg:text-xl leading-snug`} {...props} />;
-    },
-    ul : ulComponent,
-    ol : olComponent,
-    li: (props) => {
-        return <li className={`${genericFont.className} text-md lg:text-lg`} {...props} />;
-    },
-    blockquote : blockquoteComponent,
-    code : (props) => {
-        return <code className="dark:bg-black bg-white bg-opacity-20 text-brand p-1 rounded-md" {...props} />;
-    },
-    strong : (props) => {
-        return <strong className="font-bold text-foreground" {...props} />;
-    },
-    ...components,
-  }
-}
 
 const ulComponent = (props: {children: React.ReactNode}) => {    
     return (
@@ -94,3 +59,45 @@ const blockquoteComponent = (props: {children: React.ReactNode}) => {
         </blockquote>
     )
 };
+
+export const components = {
+    h1: (props: HeadingProps) => {
+        return <h1 className={`${headingFont.className} font-bold text-4xl lg:text-5xl pt-12 mb-0`} {...props} />;
+    },
+    h2: (props: HeadingProps) => {
+        return <h2 className={`${headingFont.className} font-bold text-3xl lg:text-4xl mt-8 mb-3`} {...props} />;
+    },
+    h3 : (props: HeadingProps) => {
+        return <h3 className={`${headingFont.className} font-bold text-2xl lg:text-3xl mt-8 mb-3`} {...props} />;
+    },
+    h4 : (props: HeadingProps) => {
+        return <h4 className={`${headingFont.className} font-bold text-xl lg:text-2xl mt-8 mb-3`} {...props} />;
+    },
+    h5 : (props: HeadingProps) => {
+        return <h5 className={`${headingFont.className} font-bold text-lg lg:text-xl mt-8 mb-3`} {...props} />;
+    },
+    h6 : (props: HeadingProps) => {
+        return <h6 className={`${headingFont.className} font-bold text-base lg:text-lg mt-8 mb-3`} {...props} />;
+    },
+    p : (props: ParagraphProps) => {
+        return <p className={`${genericFont.className} text-lg lg:text-xl leading-snug`} {...props} />;
+    },
+    ul : ulComponent,
+    ol : olComponent,
+    li: (props: ListItemProps) => {
+        return <li className={`${genericFont.className} text-md lg:text-lg`} {...props} />;
+    },
+    blockquote : blockquoteComponent,
+    code : (props: CodeProps) => {
+        return <code className="dark:bg-black bg-white bg-opacity-20 text-brand p-1 rounded-md" {...props} />;
+    },
+    strong : (props: StrongProps) => {
+        return <strong className="font-bold text-foreground" {...props} />;
+    }
+}
+
+// export function useMDXComponents(components: MDXComponents): MDXComponents {
+//   return {
+//     ...components,
+//   }
+// }
