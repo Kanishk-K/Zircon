@@ -6,7 +6,7 @@ export default function Home() {
     <div className={"flex flex-col gap-16"}>
       <div className="flex flex-col lg:flex-row items-center min-h-[60vh] gap-8">
         <div className="flex flex-col items-center lg:items-start gap-8 w-full lg:w-1/2 text-center lg:text-start">
-          <h1>Turn Lectures into <span className="text-brand">Insights</span></h1>
+          <h1 className="text-white text-5xl lg:text-7xl font-semibold leading-snug">Turn Lectures into <span className="text-brand">Insights</span></h1>
           <p>Analyze, summarize, and engage with your lectures like never before. Generate notes, create video content, and download content for offline use!</p>
           <div className="flex flex-row items-center gap-4">
             <a href="#" className="border-2 border-brand text-brand rounded-lg p-2 md:text-xl">Learn More</a>
@@ -18,7 +18,7 @@ export default function Home() {
         </div>
       </div>
 
-      <h1 className="hidden lg:block text-center lg:mt-14">Powerful integrations and features <span className="text-brand">right out the box</span></h1>
+      <h1 className="text-white text-5xl lg:text-7xl font-semibold leading-snug hidden lg:block text-center lg:mt-14">Powerful integrations and features <span className="text-brand">right out the box</span></h1>
 
       <div className="grid grid-cols-1 mt-8 lg:grid-cols-2 lg:h-[450px] xl:h-[550px] xl:px-24 gap-16">
         <div className="relative flex flex-col lg:flex-row items-center bg-none lg:bg-card lg:border-2 lg:border-neutral-800 lg:rounded-2xl lg:p-8 lg:items-end lg:justify-center">

@@ -3,12 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  h1 {
-    @apply text-white text-5xl lg:text-7xl font-semibold leading-snug;
-  }
-  h2 {
-    @apply text-white text-4xl lg:text-6xl font-semibold leading-snug;
-  }
   p {
     @apply text-lg lg:text-xl;
   }
