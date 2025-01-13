@@ -3,6 +3,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import { MDXRemote } from 'next-mdx-remote/rsc';
+import { redirect } from 'next/navigation';
 
 // Refresh pages after 7 days.
 export const revalidate = 604800;
@@ -30,15 +31,25 @@ export default async function RemoteMDXPage({params}:{params: Promise<{entryID: 
     })
     const dbResponse = await dbClient.send(command);
     if (!dbResponse.Item) {
-        throw new Error('Entry not found in database!');
-    }
+        try {
+            throw new Error('Entry not found in database!');
+        } catch (e) {
+            console.log (e);
+            redirect("/")
+        }
+    } 
 
     const s3Response = await s3Client.send(new GetObjectCommand({
         Bucket: process.env.AWS_BUCKET_NAME as string,
         Key: `${entryID}/Notes.md`,
     }));
     if (!s3Response.Body) {
-        throw new Error('Entry not found in S3!');
+        try {
+            throw new Error('Entry not found in S3!');
+        } catch (e) {
+            console.log (e);
+            redirect("/")
+        }
     }
     const text = await s3Response.Body.transformToString();
 
