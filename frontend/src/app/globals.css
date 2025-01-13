@@ -4,22 +4,25 @@
 
 @layer base {
   p {
-    @apply text-lg lg:text-xl;
+    @apply text-lg lg:text-xl dark:text-neutral-400 text-neutral-600;
   }
 }
 
 :root {
-  --background: #ffffff;
+  --background: #fff9ed;
   --foreground: #171717;
-  --color-brand: #820000;
-  --color-card: #1d1d1d;
+  --color-brand: #7f1d1d;
+  --color-card: #ffffff;
+  --color-card-border: #e0e0e0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #131313;
-    --foreground: #b8b8b8;
+    --foreground: #ffffff;
     --color-brand: #c59f63;
+    --color-card: #1d1d1d;
+    --color-card-border: #2d2d2d;
   }
 }
 

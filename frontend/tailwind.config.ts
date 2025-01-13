@@ -14,6 +14,7 @@ export default {
         foreground: "var(--foreground)",
         brand: "var(--color-brand)",
         card : "var(--color-card)",
+        cardborder : "var(--color-card-border)",
       },
     },
   },
