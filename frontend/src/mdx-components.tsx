@@ -2,7 +2,7 @@ import type { MDXComponents } from 'mdx/types'
 import { ComponentPropsWithoutRef } from 'react';
 
 import localFont from "next/font/local";
-import { FaListOl, FaListUl } from 'react-icons/fa6';
+import { FaListOl, FaListUl, FaQuoteLeft } from 'react-icons/fa6';
 
 const headingFont = localFont({
     src: "../public/fonts/Alliance2.otf",
@@ -45,6 +45,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     li: (props) => {
         return <li className={`${genericFont.className} text-md lg:text-lg`} {...props} />;
     },
+    blockquote : blockquoteComponent,
     code : (props) => {
         return <code className="bg-black bg-opacity-20 text-brand p-1 rounded-md" {...props} />;
     },
@@ -58,7 +59,7 @@ const ulComponent = (props: {children: React.ReactNode}) => {
             <div className={"absolute -left-2 -top-5 bg-brand p-2 rounded-xl group-[.parent-list]:hidden"}>
                 <FaListUl className='text-background' size={'1.25rem'} />
             </div>
-            <ul className={"list-disc marker:text-brand marker:font-bold bg-black bg-opacity-20 pl-8 py-2 pt-4 pr-4 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:pr-0 group-[.parent-list]:pl-4 group-[.parent-list]:border-l-0 group-[.parent-list]:bg-transparent"}>
+            <ul className={"list-disc marker:text-brand marker:font-bold bg-black bg-opacity-20 pl-8 py-2 pt-6 pr-4 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:pr-0 group-[.parent-list]:pl-4 group-[.parent-list]:border-l-0 group-[.parent-list]:bg-transparent"}>
                 {props.children}
             </ul>
       </div>
@@ -71,9 +72,22 @@ const olComponent = (props: {children: React.ReactNode}) => {
             <div className={"absolute -left-2 -top-5 bg-brand p-2 rounded-xl group-[.parent-list]:hidden"}>
                 <FaListOl className='text-background' size={'1.25rem'} />
             </div>
-            <ul className={"list-decimal marker:text-brand marker:font-bold bg-black bg-opacity-20 pl-8 py-2 pt-4 pr-4 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:pr-0 group-[.parent-list]:pl-4 group-[.parent-list]:border-l-0 group-[.parent-list]:bg-transparent"}>
+            <ul className={"list-decimal marker:text-brand marker:font-bold bg-black bg-opacity-20 pl-8 py-2 pt-6 pr-4 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:pr-0 group-[.parent-list]:pl-4 group-[.parent-list]:border-l-0 group-[.parent-list]:bg-transparent"}>
                 {props.children}
             </ul>
       </div>
     )
 }
+
+const blockquoteComponent = (props: {children: React.ReactNode}) => {
+    return (
+        <blockquote className="relative my-10 group-[.parent-list]:mt-0 group-[.parent-list]:mb-0">
+            <div className={"absolute -left-2 -top-5 bg-brand p-2 rounded-xl group-[.parent-list]:hidden"}>
+                <FaQuoteLeft className='text-background' size={'1.25rem'} />
+            </div>
+            <ol className={"bg-black bg-opacity-20 pl-2 py-2 pt-6 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:ml-2 group-[.parent-list]:my-4 group-[.parent-list]:rounded-none group-[.parent-list]:border-l-2 group-[.parent-list]:border-opacity-60 group-[.parent-list]:bg-transparent"}>
+                {props.children}
+            </ol>
+        </blockquote>
+    )
+};
