@@ -6,10 +6,17 @@
   p {
     @apply text-lg lg:text-xl dark:text-neutral-400 text-neutral-600;
   }
+  th,
+  td {
+    @apply px-2;
+  }
+  figure {
+    margin-top: 0.75rem;
+  }
   pre > code {
     overflow-x: auto;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
   }
   pre [data-line] {
     padding: 0 1rem;

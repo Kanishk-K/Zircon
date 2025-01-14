@@ -96,6 +96,23 @@ export const components = {
     },
     hr : () => {
         return <span className="block w-full my-10" />;
+    },
+    table : (props: {children: React.ReactNode[]}) => {
+        const header = props.children[0] as React.ReactElement;
+        const body = props.children[1] as React.ReactElement;
+        console.log(header);
+        return (
+            <div className='w-full my-10 overflow-x-auto'>
+                <table className="table-auto w-full overflow-auto text-nowrap">
+                    <thead className={`${headingFont.className} text-brand font-bold md:text-xl border-brand border-b-2 border-spacing-2 text-left`}>
+                        {(header as React.ReactElement<React.HTMLProps<HTMLTableSectionElement>>).props.children as React.ReactNode[]}
+                    </thead>
+                    <tbody className='dark:text-neutral-400 text-neutral-600'>
+                        {(body as React.ReactElement<React.HTMLProps<HTMLTableSectionElement>>).props.children as React.ReactNode[]}
+                    </tbody>
+                </table>
+            </div>
+        )
     }
 }
 

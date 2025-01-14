@@ -5,6 +5,7 @@ import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { redirect } from 'next/navigation';
 import rehypePrettyCode from 'rehype-pretty-code';
+import remarkGfm from 'remark-gfm';
 
 // Refresh pages after 7 days.
 export const revalidate = false;
@@ -22,15 +23,14 @@ const credentials = {
 const s3Client = new S3Client(credentials);
 const dbClient = new DynamoDBClient(credentials)
 
-export default async function RemoteMDXPage({params}:{params: Promise<{entryID: string}>}) {
-    const shikiOptions = {
-        theme: {
-            dark: "vitesse-black",
-            light: "vitesse-light",
-        }
+const shikiOptions = {
+    theme: {
+        dark: "vitesse-black",
+        light: "vitesse-light",
     }
+}
 
-    const { entryID } = await params;
+async function generateProdMarkdown(entryID:string){
     const command = new GetCommand({
         TableName: process.env.AWS_DYNAMODB_TABLE as string,
         Key: {
@@ -64,7 +64,7 @@ export default async function RemoteMDXPage({params}:{params: Promise<{entryID: 
         return <MDXRemote components={components} source={text} options={
         {
             mdxOptions: {
-                remarkPlugins: [],
+                remarkPlugins: [[remarkGfm]],
                 rehypePlugins: [[rehypePrettyCode, shikiOptions]]
             }
         }
@@ -73,4 +73,9 @@ export default async function RemoteMDXPage({params}:{params: Promise<{entryID: 
         console.log(e);
         redirect("/");
     }
+}
+
+export default async function RemoteMDXPage({params}:{params: Promise<{entryID: string}>}) {
+    const { entryID } = await params;
+    return await generateProdMarkdown(entryID);
 }
