@@ -100,7 +100,6 @@ export const components = {
     table : (props: {children: React.ReactNode[]}) => {
         const header = props.children[0] as React.ReactElement;
         const body = props.children[1] as React.ReactElement;
-        console.log(header);
         return (
             <div className='w-full my-10 overflow-x-auto'>
                 <table className="table-auto w-full overflow-auto text-nowrap">
