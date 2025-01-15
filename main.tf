@@ -93,18 +93,42 @@ resource "aws_elasticache_subnet_group" "lecture-analyzer-elasticate-subnet-grou
   subnet_ids = aws_subnet.lecture-analyzer-private-subnet[*].id
 }
 
+# Provision IAM Roles
+
 # Provision the elasticache instance to handle job queueing.
-resource "aws_elasticache_cluster" "lecture-analyzer-queue" {
-  cluster_id           = "lecture-analyzer-queue"
-  engine               = "redis"
-  node_type            = "cache.t3.micro"
-  num_cache_nodes      = 1
-  parameter_group_name = "default.redis7"
-  port                 = 6379
-  subnet_group_name    = aws_elasticache_subnet_group.lecture-analyzer-elasticate-subnet-group.name
+# resource "aws_elasticache_replication_group" "lecture-analyzer-queue" {
+#   replication_group_id       = "lecture-analyzer-queue"
+#   description                = "Lecture Analyzer Redis Replication Group"
+#   engine                     = "redis"
+#   engine_version             = "7.1"
+#   node_type                  = "cache.t3.micro"
+#   num_cache_clusters         = 1
+#   automatic_failover_enabled = false # Set to true for multi-AZ failover
+#   port                       = 6379
+#   parameter_group_name       = "default.redis7"
+#   subnet_group_name          = aws_elasticache_subnet_group.lecture-analyzer-elasticate-subnet-group.name
+
+#   tags = {
+#     Name        = "lecture-analyzer"
+#     Environment = "prod"
+#   }
+# }
+
+# Provision the ECR repository for storing consumer images.
+resource "aws_ecrpublic_repository" "lecture-analyzer-consumer-images" {
+  repository_name = "lecture-analyzer-consumer"
+
   tags = {
     Name        = "lecture-analyzer"
     Environment = "prod"
   }
 }
 
+resource "aws_ecrpublic_repository" "lecture-analyzer-producer-images" {
+  repository_name = "lecture-analyzer-producer"
+
+  tags = {
+    Name        = "lecture-analyzer"
+    Environment = "prod"
+  }
+}
