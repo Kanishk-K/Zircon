@@ -1,10 +1,11 @@
 # This file sets up the networking configurations for the application.
 # -> VPC Setup
 # -> Subnet Setup
-# -> Route Table Setup
 # -> Internet Gateway Setup
 # -> VPC Endpoint (Gateways) Setup
+# -> EIP Setup
 # -> NAT Gateway Setup
+# -> Route Table Setup
 # -> Security Group Setup
 
 
@@ -40,10 +41,11 @@ variable "azs" {
 
 # CREATES public subnets for the application
 resource "aws_subnet" "public-subnets" {
-  count             = length(var.public_subnet_cidr_blocks)
-  vpc_id            = aws_vpc.vpc.id
-  cidr_block        = element(var.public_subnet_cidr_blocks, count.index)
-  availability_zone = element(var.azs, count.index)
+  count                   = length(var.public_subnet_cidr_blocks)
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = element(var.public_subnet_cidr_blocks, count.index)
+  availability_zone       = element(var.azs, count.index)
+  map_public_ip_on_launch = true
 
   tags = {
     "Name" = "lecture-analyzer-public-subnet-${count.index}"
@@ -52,44 +54,15 @@ resource "aws_subnet" "public-subnets" {
 
 # CREATES private subnets for the application
 resource "aws_subnet" "private-subnets" {
-  count             = length(var.private_subnet_cidr_blocks)
-  vpc_id            = aws_vpc.vpc.id
-  cidr_block        = element(var.private_subnet_cidr_blocks, count.index)
-  availability_zone = element(var.azs, count.index)
+  count                   = length(var.private_subnet_cidr_blocks)
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = element(var.private_subnet_cidr_blocks, count.index)
+  availability_zone       = element(var.azs, count.index)
+  map_public_ip_on_launch = false
 
   tags = {
     "Name" = "lecture-analyzer-private-subnet-${count.index}"
   }
-}
-
-# CREATES a public route table for the public subnets
-resource "aws_route_table" "rt-public" {
-  vpc_id = aws_vpc.vpc.id
-
-  route {
-    # Send all external traffic to the internet gateway
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-}
-
-# ASSIGN public subnets to the public route table
-resource "aws_route_table_association" "rt-public-assoc" {
-  count          = length(aws_subnet.public-subnets)
-  subnet_id      = aws_subnet.public-subnets[count.index].id
-  route_table_id = aws_route_table.rt-public.id
-}
-
-# CREATES a private route table for the private subnets
-resource "aws_route_table" "rt-private" {
-  vpc_id = aws_vpc.vpc.id
-}
-
-# ASSIGN private subnets to the private route table
-resource "aws_route_table_association" "rt-private-assoc" {
-  count          = length(aws_subnet.private-subnets)
-  subnet_id      = aws_subnet.private-subnets[count.index].id
-  route_table_id = aws_route_table.rt-private.id
 }
 
 # CREATES an internet gateway for the VPC to allow internet access
@@ -98,6 +71,27 @@ resource "aws_internet_gateway" "igw" {
 
   tags = {
     Name        = "lecture-analyzer-igw"
+    Environment = "prod"
+  }
+}
+
+# CREATES a EIP for the NAT gateway
+resource "aws_eip" "eip" {
+  domain = "vpc"
+  tags = {
+    Name        = "lecture-analyzer-eip"
+    Environment = "prod"
+  }
+}
+
+# CREATES a NAT gateway for the private subnets to allow internet access
+resource "aws_nat_gateway" "nat-gateway" {
+  allocation_id = aws_eip.eip.id
+  subnet_id     = element(aws_subnet.public-subnets[*].id, 0)
+  depends_on    = [aws_internet_gateway.igw]
+
+  tags = {
+    Name        = "lecture-analyzer-nat-gateway"
     Environment = "prod"
   }
 }
@@ -124,4 +118,80 @@ resource "aws_vpc_endpoint" "dynamodb-endpoint" {
   }
 }
 
-# CREATES a NAT gateway to allow private subnets to access the internet
+# CREATES a public route table for the public subnets
+resource "aws_route_table" "rt-public" {
+  vpc_id = aws_vpc.vpc.id
+  tags = {
+    Name        = "lecture-analyzer-rt-public"
+    Environment = "prod"
+  }
+}
+
+# CREATES a route to the internet gateway for the public route table
+resource "aws_route" "rt-public-route" {
+  route_table_id         = aws_route_table.rt-public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.igw.id
+}
+
+# ASSIGN public subnets to the public route table
+resource "aws_route_table_association" "rt-public-assoc" {
+  count          = length(aws_subnet.public-subnets)
+  subnet_id      = aws_subnet.public-subnets[count.index].id
+  route_table_id = aws_route_table.rt-public.id
+}
+
+# CREATES a private route table for the private subnets
+resource "aws_route_table" "rt-private" {
+  vpc_id = aws_vpc.vpc.id
+  tags = {
+    Name        = "lecture-analyzer-rt-private"
+    Environment = "prod"
+  }
+}
+
+# CREATES a route to the NAT gateway for the private route table
+resource "aws_route" "rt-private-route" {
+  route_table_id         = aws_route_table.rt-private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat-gateway.id
+}
+
+# ASSIGN private subnets to the private route table
+resource "aws_route_table_association" "rt-private-assoc" {
+  count          = length(aws_subnet.private-subnets)
+  subnet_id      = aws_subnet.private-subnets[count.index].id
+  route_table_id = aws_route_table.rt-private.id
+}
+
+# CREATES a security group for the nodes to pull from the ECR repository and communicate with the ECS cluster
+# https://repost.aws/questions/QUk9Za0ev-Rzeas-FoTHbymQ/security-group-outbound-rules-with-elastic-container-service
+resource "aws_security_group" "ecs-node-sg" {
+  name   = "lecture-analyzer-ecs-node-sg"
+  vpc_id = aws_vpc.vpc.id
+
+  # egress {
+  #   from_port   = 443
+  #   to_port     = 443
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
+  # egress {
+  #   from_port   = 53
+  #   to_port     = 53
+  #   protocol    = "udp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
+  # egress {
+  #   from_port   = 51678
+  #   to_port     = 51680
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
