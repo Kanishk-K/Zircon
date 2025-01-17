@@ -170,28 +170,29 @@ resource "aws_security_group" "ecs-node-sg" {
   name   = "lecture-analyzer-ecs-node-sg"
   vpc_id = aws_vpc.vpc.id
 
-  # egress {
-  #   from_port   = 443
-  #   to_port     = 443
-  #   protocol    = "tcp"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
-  # egress {
-  #   from_port   = 53
-  #   to_port     = 53
-  #   protocol    = "udp"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
-  # egress {
-  #   from_port   = 51678
-  #   to_port     = 51680
-  #   protocol    = "tcp"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = -1
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    # Docker ports
+    from_port   = 2375
+    to_port     = 2376
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 51678
+    to_port     = 51680
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
