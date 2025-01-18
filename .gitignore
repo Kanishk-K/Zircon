@@ -1,4 +1,5 @@
 .env
+env.tf
 Backend/tmp/*
 Backend/static/*
 

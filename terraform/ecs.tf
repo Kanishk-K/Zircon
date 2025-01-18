@@ -222,6 +222,20 @@ resource "aws_ecs_task_definition" "ecs-producer-task-definition" {
         value = "http://${aws_lb.producer-alb.dns_name}"
       }
     ]
+    secrets = [
+      {
+        name      = "GOOGLE_CLIENT_ID"
+        valueFrom = aws_ssm_parameter.GOOGLE_CLIENT_ID.arn
+      },
+      {
+        name      = "GOOGLE_CLIENT_SECRET"
+        valueFrom = aws_ssm_parameter.GOOGLE_CLIENT_SECRET.arn
+      },
+      {
+        name      = "JWT_PRIVATE"
+        valueFrom = aws_ssm_parameter.JWT_PRIVATE.arn
+      }
+    ]
     logConfiguration = {
       logDriver = "awslogs"
       options = {

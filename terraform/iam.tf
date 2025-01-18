@@ -44,6 +44,25 @@ data "aws_iam_policy_document" "ecs-task-execution-trust-policy" {
   }
 }
 
+# DEFINE the resource access policy for the ECS Task Execution Role
+data "aws_iam_policy_document" "ecs-task-execution-secrets" {
+  statement {
+    actions = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = [
+      aws_ssm_parameter.GOOGLE_CLIENT_ID.arn,
+      aws_ssm_parameter.GOOGLE_CLIENT_SECRET.arn,
+      aws_ssm_parameter.JWT_PRIVATE.arn
+    ]
+  }
+}
+
+# CREATE the ECS Task Execution Role resource access policy
+resource "aws_iam_policy" "ecs-task-execution-policy" {
+  name        = "lecture-analyzer-ecs-task-execution-policy"
+  description = "Allows the ECS controller to access resources"
+  policy      = data.aws_iam_policy_document.ecs-task-execution-secrets.json
+}
+
 # CREATE the ECS Task Execution Role
 resource "aws_iam_role" "ecs-task-execution-role" {
   name               = "lecture-analyzer-ecs-task-execution-role"
@@ -54,4 +73,10 @@ resource "aws_iam_role" "ecs-task-execution-role" {
 resource "aws_iam_role_policy_attachment" "ecs-task-execution-role-policy" {
   role       = aws_iam_role.ecs-task-execution-role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ATTACH the resource access policy to the ECS Task Execution Role
+resource "aws_iam_role_policy_attachment" "ecs-task-execution-policy" {
+  role       = aws_iam_role.ecs-task-execution-role.name
+  policy_arn = aws_iam_policy.ecs-task-execution-policy.arn
 }
