@@ -117,6 +117,7 @@ resource "aws_ecs_service" "consumer-service" {
     subnets         = aws_subnet.private-subnets[*].id
     security_groups = [aws_security_group.ecs-node-sg.id]
   }
+  depends_on = [aws_ecs_cluster_capacity_providers.ecs-consumer-capacity-provider]
 }
 
 # -> ECS Producer Cluster
@@ -165,13 +166,108 @@ resource "aws_autoscaling_group" "ecs-producer-asg" {
   }
 }
 
+# CREATE a (singular) capacity provider for the ECS producer so that ECS can use the containers
+resource "aws_ecs_capacity_provider" "ecs-producer-capacity-provider" {
+  name = "lecture-analyzer-ecs-producer-capacity-provider"
+  auto_scaling_group_provider {
+    auto_scaling_group_arn         = aws_autoscaling_group.ecs-producer-asg.arn
+    managed_termination_protection = "DISABLED"
+
+    managed_scaling {
+      maximum_scaling_step_size = 1
+      minimum_scaling_step_size = 1
+      status                    = "ENABLED"
+      target_capacity           = 100
+    }
+    managed_draining = "ENABLED"
+  }
+  tags = {
+    Name        = "lecture-analyzer-ecs-producer-capacity-provider"
+    Environment = "prod"
+  }
+}
+
 # ASSIGN the capacity provider to the ECS producer cluster
 resource "aws_ecs_cluster_capacity_providers" "ecs-producer-capacity-provider" {
   cluster_name       = aws_ecs_cluster.producer-cluster.name
-  capacity_providers = [aws_ecs_capacity_provider.ecs-consumer-capacity-provider.name]
+  capacity_providers = [aws_ecs_capacity_provider.ecs-producer-capacity-provider.name]
   default_capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.ecs-consumer-capacity-provider.name
+    capacity_provider = aws_ecs_capacity_provider.ecs-producer-capacity-provider.name
     base              = 1
     weight            = 100
+  }
+}
+
+# CREATE a task definition for the ECS producer
+resource "aws_ecs_task_definition" "ecs-producer-task-definition" {
+  family             = "lecture-analyzer-ecs-producer"
+  task_role_arn      = aws_iam_role.ecs-task-role.arn
+  execution_role_arn = aws_iam_role.ecs-task-execution-role.arn
+  network_mode       = "awsvpc"
+  cpu                = 1024
+  memory             = 952
+  container_definitions = jsonencode([{
+    cpu       = 1024
+    memory    = 952
+    name      = "lecture-analyzer-producer-container"
+    image     = "${aws_ecrpublic_repository.producer-images.repository_uri}:latest"
+    essential = true
+    portMappings = [{
+      containerPort = 80
+      hostPort      = 80
+    }]
+  }])
+}
+
+# CREATE a service for the ECS producer
+resource "aws_ecs_service" "producer-service" {
+  name            = "lecture-analyzer-ecs-producer-service"
+  cluster         = aws_ecs_cluster.producer-cluster.id
+  task_definition = aws_ecs_task_definition.ecs-producer-task-definition.arn
+  desired_count   = 1
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.ecs-producer-capacity-provider.name
+    base              = 1
+    weight            = 100
+  }
+  network_configuration {
+    subnets         = aws_subnet.public-subnets[*].id
+    security_groups = [aws_security_group.ecs-node-sg.id, aws_security_group.alb-sg.id]
+  }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.producer-tg.arn
+    container_name   = "lecture-analyzer-producer-container"
+    container_port   = 80
+  }
+  depends_on = [aws_ecs_cluster_capacity_providers.ecs-producer-capacity-provider, aws_lb_target_group.producer-tg]
+}
+
+# CREATE an application load balancer for the ECS producer
+resource "aws_lb" "producer-alb" {
+  name               = "lecture-analyzer-producer-alb"
+  internal           = false
+  load_balancer_type = "application"
+  subnets            = aws_subnet.public-subnets[*].id
+  security_groups    = [aws_security_group.alb-sg.id]
+}
+
+# CREATE a target group for the ECS producer
+resource "aws_lb_target_group" "producer-tg" {
+  name        = "lecture-analyzer-producer-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.vpc.id
+  target_type = "ip"
+}
+
+# CREATE a listener for the ECS producer
+resource "aws_lb_listener" "producer-listener" {
+  load_balancer_arn = aws_lb.producer-alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.producer-tg.arn
   }
 }

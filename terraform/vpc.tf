@@ -22,7 +22,7 @@ resource "aws_vpc" "vpc" {
 variable "public_subnet_cidr_blocks" {
   type        = list(string)
   description = "These are the CIDR blocks that will be used to generate public subnets"
-  default     = ["10.0.1.0/24"]
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
 # DEFINES private subnets for the application each with around 256 IP addresses
@@ -36,7 +36,7 @@ variable "private_subnet_cidr_blocks" {
 variable "azs" {
   type        = list(string)
   description = "These are the availability zones that will be used to generate subnets"
-  default     = ["us-east-1a"]
+  default     = ["us-east-1a", "us-east-1b"]
 }
 
 # CREATES public subnets for the application
@@ -192,6 +192,27 @@ resource "aws_security_group" "ecs-node-sg" {
   egress {
     from_port   = 51678
     to_port     = 51680
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# CREATES a security group for the ALB to allow traffic from the internet
+resource "aws_security_group" "alb-sg" {
+  name   = "lecture-analyzer-alb-sg"
+  vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    # HTTP
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    # HTTPS
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
