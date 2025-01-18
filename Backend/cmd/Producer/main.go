@@ -30,9 +30,12 @@ func main() {
 	}
 
 	// Get the PORT from environment variables
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	host := os.Getenv("HOST")
+	port := ""
+	if host == "" {
+		port = ":8080"
+		host = "http://localhost"
+		fmt.Println("No HOST environment variable detected, defaulting to", host)
 		fmt.Println("No PORT environment variable detected, defaulting to", port)
 	}
 
@@ -81,8 +84,8 @@ func main() {
 		authServiceRouter, jobSchedulerRouter,
 	)
 
-	fmt.Println("Starting server on port", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	fmt.Println("Starting server: ", host+port)
+	if err := http.ListenAndServe(port, nil); err != nil {
 		fmt.Println("Failed to start server:", err)
 	}
 }

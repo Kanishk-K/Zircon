@@ -216,6 +216,20 @@ resource "aws_ecs_task_definition" "ecs-producer-task-definition" {
       containerPort = 80
       hostPort      = 80
     }]
+    environment = [
+      {
+        name  = "HOST"
+        value = "http://${aws_lb.producer-alb.dns_name}"
+      }
+    ]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "ecs-producer"
+        "awslogs-region"        = "us-east-1"
+        "awslogs-stream-prefix" = "ecs-producer-stream"
+      }
+    }
   }])
 }
 
