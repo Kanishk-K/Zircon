@@ -30,6 +30,7 @@ func (jsr *JobSchedulerRouter) RegisterRoutes() {
 	http.HandleFunc("/process", jsr.HandleIncomingJob)
 	http.HandleFunc("/status", jsr.StatusCheck)
 	http.HandleFunc("/existing", jsr.HandleExistingJob)
+	http.HandleFunc("/health", jsr.HealthCheck)
 }
 
 // Handles the video download route
@@ -118,5 +119,17 @@ func (jsr *JobSchedulerRouter) HandleExistingJob(w http.ResponseWriter, r *http.
 		}
 	} else {
 		http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
+	}
+}
+
+func (jsr *JobSchedulerRouter) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{"message": "Healthy"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		http.Error(w, "Only GET method is supported", http.StatusMethodNotAllowed)
 	}
 }

@@ -286,13 +286,40 @@ resource "aws_lb_target_group" "producer-tg" {
   protocol    = "HTTP"
   vpc_id      = aws_vpc.vpc.id
   target_type = "ip"
+  health_check {
+    path                = "/health"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 60
+    timeout             = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+  }
 }
 
-# CREATE a listener for the ECS producer
+# CREATE a listener for the ECS producer (HTTP)
 resource "aws_lb_listener" "producer-listener" {
   load_balancer_arn = aws_lb.producer-alb.arn
   port              = 80
   protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# CREATE a listener for the ECS producer (HTTPS)
+resource "aws_lb_listener" "producer-https-listener" {
+  load_balancer_arn = aws_lb.producer-alb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.ssl_cert.arn
 
   default_action {
     type             = "forward"
