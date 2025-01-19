@@ -29,6 +29,9 @@ RUN apk add --no-cache ffmpeg
 COPY --from=builder /app/main .
 RUN chmod +x ./main
 
+# Copy the static files
+COPY --from=builder /app/static ./static
+
 # Expose port 8080 to the outside world
 EXPOSE 8080
 

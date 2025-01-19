@@ -15,6 +15,12 @@ services:
       - redis
     environment:
       - REDIS_URL=redis:6379
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JWT_PRIVATE=${JWT_PRIVATE}
+    volumes:
+      # Mount the AWS credentials file to the container
+      - ~/.aws:/root/.aws
   consumer:
     build:
       context: ./Backend
@@ -26,6 +32,9 @@ services:
     environment:
       - REDIS_URL=redis:6379
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      # Mount the AWS credentials file to the container
+      - ~/.aws:/root/.aws
     
 
 networks:
