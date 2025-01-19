@@ -1,5 +1,5 @@
-const SERVERHOST = "http://localhost:8080";
-// chrome.storage.local.clear(); // Remove before deploying to prod, deletes auth information on each reload.
+const SERVERHOST = "https://analysis.socialcoding.net";
+chrome.storage.local.clear(); // Remove before deploying to prod, deletes auth information on each reload.
 
 // Checks if tab is loaded
 function onTabLoaded(tabId) {

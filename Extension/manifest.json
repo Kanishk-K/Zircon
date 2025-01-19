@@ -30,5 +30,5 @@
   },
   "web_accessible_resources": [],
   "permissions": ["storage", "management", "scripting", "tabs"],
-  "host_permissions": ["http://localhost:8080/*"]
+  "host_permissions": ["https://analysis.socialcoding.net/*"]
 }
