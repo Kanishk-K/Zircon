@@ -136,7 +136,7 @@ resource "aws_launch_template" "ecs-producer-launch-template" {
   name                   = "lecture-analyzer-ecs-producer-launch-template"
   image_id               = var.ecs-ami
   instance_type          = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.ecs-node-sg.id]
+  vpc_security_group_ids = [aws_security_group.ecs-node-sg.id, aws_security_group.producer-sg.id]
   iam_instance_profile {
     arn = aws_iam_instance_profile.ecs-task-profile.arn
   }
@@ -203,7 +203,7 @@ resource "aws_ecs_task_definition" "ecs-producer-task-definition" {
   family             = "lecture-analyzer-ecs-producer"
   task_role_arn      = aws_iam_role.ecs-task-role.arn
   execution_role_arn = aws_iam_role.ecs-task-execution-role.arn
-  network_mode       = "awsvpc"
+  network_mode       = "bridge"
   cpu                = 1024
   memory             = 952
   container_definitions = jsonencode([{
@@ -219,7 +219,7 @@ resource "aws_ecs_task_definition" "ecs-producer-task-definition" {
     environment = [
       {
         name  = "HOST"
-        value = "http://${aws_lb.producer-alb.dns_name}"
+        value = "https://${var.DOMAIN}"
       }
     ]
     secrets = [
@@ -258,10 +258,10 @@ resource "aws_ecs_service" "producer-service" {
     base              = 1
     weight            = 100
   }
-  network_configuration {
-    subnets         = aws_subnet.public-subnets[*].id
-    security_groups = [aws_security_group.ecs-node-sg.id, aws_security_group.alb-sg.id]
-  }
+  # network_configuration {
+  #   subnets         = aws_subnet.public-subnets[*].id
+  #   security_groups = [aws_security_group.ecs-node-sg.id, aws_security_group.alb-sg.id]
+  # }
   load_balancer {
     target_group_arn = aws_lb_target_group.producer-tg.arn
     container_name   = "lecture-analyzer-producer-container"
@@ -285,7 +285,7 @@ resource "aws_lb_target_group" "producer-tg" {
   port        = 80
   protocol    = "HTTP"
   vpc_id      = aws_vpc.vpc.id
-  target_type = "ip"
+  target_type = "instance"
   health_check {
     path                = "/health"
     protocol            = "HTTP"

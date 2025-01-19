@@ -170,6 +170,7 @@ resource "aws_security_group" "ecs-node-sg" {
   name   = "lecture-analyzer-ecs-node-sg"
   vpc_id = aws_vpc.vpc.id
 
+  # Allow traffic to the ECS cluster
   egress {
     from_port   = 443
     to_port     = 443
@@ -221,5 +222,26 @@ resource "aws_security_group" "alb-sg" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# CREATES a security group for the producer service to communicate with the ALB and Oauth service
+resource "aws_security_group" "producer-sg" {
+  name   = "lecture-analyzer-producer-sg"
+  vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    # OAuth, this is fine as we have no listeners for this port.
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    # ALB, only allow port 80 traffic from the ALB as we do have a listener for this port.
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb-sg.id]
   }
 }
