@@ -24,7 +24,7 @@ resource "aws_launch_template" "ecs-consumer-launch-template" {
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.ecs-node-sg.id]
   iam_instance_profile {
-    arn = aws_iam_instance_profile.ecs-task-profile.arn
+    arn = aws_iam_instance_profile.ecs-consumer-task-profile.arn
   }
   user_data = base64encode(templatefile("${path.cwd}/aws/ecs_template.sh", { "cluster" : aws_ecs_cluster.consumer-cluster.name }))
 }
@@ -87,8 +87,8 @@ resource "aws_ecs_cluster_capacity_providers" "ecs-consumer-capacity-provider" {
 # CREATE a task definition for the ECS consumer
 resource "aws_ecs_task_definition" "ecs-consumer-task-definition" {
   family             = "lecture-analyzer-ecs-consumer"
-  task_role_arn      = aws_iam_role.ecs-task-role.arn
-  execution_role_arn = aws_iam_role.ecs-task-execution-role.arn
+  task_role_arn      = aws_iam_role.ecs-consumer-task-role.arn
+  execution_role_arn = aws_iam_role.ecs-consumer-task-execution-role.arn
   network_mode       = "awsvpc"
   cpu                = 1024
   memory             = 952
@@ -138,7 +138,7 @@ resource "aws_launch_template" "ecs-producer-launch-template" {
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.ecs-node-sg.id, aws_security_group.producer-sg.id]
   iam_instance_profile {
-    arn = aws_iam_instance_profile.ecs-task-profile.arn
+    arn = aws_iam_instance_profile.ecs-producer-task-profile.arn
   }
   user_data = base64encode(templatefile("${path.cwd}/aws/ecs_template.sh", { "cluster" : aws_ecs_cluster.producer-cluster.name }))
 }
@@ -201,8 +201,8 @@ resource "aws_ecs_cluster_capacity_providers" "ecs-producer-capacity-provider" {
 # CREATE a task definition for the ECS producer
 resource "aws_ecs_task_definition" "ecs-producer-task-definition" {
   family             = "lecture-analyzer-ecs-producer"
-  task_role_arn      = aws_iam_role.ecs-task-role.arn
-  execution_role_arn = aws_iam_role.ecs-task-execution-role.arn
+  task_role_arn      = aws_iam_role.ecs-producer-task-role.arn
+  execution_role_arn = aws_iam_role.ecs-producer-task-execution-role.arn
   network_mode       = "bridge"
   cpu                = 1024
   memory             = 952
@@ -220,6 +220,10 @@ resource "aws_ecs_task_definition" "ecs-producer-task-definition" {
       {
         name  = "HOST"
         value = "https://${var.DOMAIN}"
+      },
+      {
+        name  = "REDIS_URL"
+        value = "${aws_elasticache_replication_group.task-queue.primary_endpoint_address}:6379"
       }
     ]
     secrets = [

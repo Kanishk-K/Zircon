@@ -1,4 +1,4 @@
-const SERVERHOST = "http://localhost:8080";
+const SERVERHOST = "https://analysis.socialcoding.net";
 let payload = undefined;
 let jwt = undefined;
 const statusMapping = {

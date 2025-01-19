@@ -7,6 +7,10 @@
 # -> NAT Gateway Setup
 # -> Route Table Setup
 # -> Security Group Setup
+# -> -> ECS Task Security Group
+# -> -> ALB Security Group
+# -> -> Producer Security Group
+# -> -> ElastiCache Security Group
 
 
 # CREATES a VPC for the application with a CIDR block of 10.0.0.0/16 (65,536 IP addresses)
@@ -225,7 +229,7 @@ resource "aws_security_group" "alb-sg" {
   }
 }
 
-# CREATES a security group for the producer service to communicate with the ALB and Oauth service
+# CREATES a security group for the producer service to communicate with resources.
 resource "aws_security_group" "producer-sg" {
   name   = "lecture-analyzer-producer-sg"
   vpc_id = aws_vpc.vpc.id
@@ -243,5 +247,44 @@ resource "aws_security_group" "producer-sg" {
     to_port         = 80
     protocol        = "tcp"
     security_groups = [aws_security_group.alb-sg.id]
+  }
+}
+
+# APPENDS an ingress rule to the producer security group to allow traffic from the ElastiCache security group
+resource "aws_security_group_rule" "producer-redis-ingress" {
+  type                     = "ingress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.producer-sg.id
+  source_security_group_id = aws_security_group.elasticache-sg.id
+}
+
+# APPENDS an egress rule to the producer security group to allow traffic to the ElastiCache security group
+resource "aws_security_group_rule" "producer-redis-egress" {
+  type                     = "egress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.producer-sg.id
+  source_security_group_id = aws_security_group.elasticache-sg.id
+}
+
+resource "aws_security_group" "elasticache-sg" {
+  name        = "lecture-analyzer-elasticache-sg"
+  description = "Security group for the ElastiCache cluster"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.producer-sg.id]
+  }
+  egress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.producer-sg.id]
   }
 }
