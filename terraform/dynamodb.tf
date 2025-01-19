@@ -17,6 +17,9 @@ resource "aws_dynamodb_table" "jobs-table" {
     Name        = "lecture-analyzer-jobs-table"
     Environment = "prod"
   }
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # CREATES a DynamoDB table to store metadata on users
@@ -33,5 +36,8 @@ resource "aws_dynamodb_table" "users-table" {
   tags = {
     Name        = "lecture-analyzer-users-table"
     Environment = "prod"
+  }
+  lifecycle {
+    prevent_destroy = true
   }
 }

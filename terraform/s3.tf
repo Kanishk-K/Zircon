@@ -4,4 +4,7 @@ resource "aws_s3_bucket" "s3_bucket" {
     Name        = "lecture-processor"
     Environment = "prod"
   }
+  lifecycle {
+    prevent_destroy = true
+  }
 }
