@@ -15,3 +15,9 @@ resource "aws_ssm_parameter" "JWT_PRIVATE" {
   type  = "String"
   value = var.JWT_PRIVATE
 }
+
+resource "aws_ssm_parameter" "OPENAI_API_KEY" {
+  name  = "/lecture-analyzer/openai_api_key"
+  type  = "String"
+  value = var.OPENAI_API_KEY
+}

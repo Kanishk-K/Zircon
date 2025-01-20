@@ -22,7 +22,7 @@ resource "aws_launch_template" "ecs-consumer-launch-template" {
   name                   = "lecture-analyzer-ecs-consumer-launch-template"
   image_id               = var.ecs-ami
   instance_type          = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.ecs-node-sg.id]
+  vpc_security_group_ids = [aws_security_group.ecs-node-sg.id, aws_security_group.consumer-sg.id]
   iam_instance_profile {
     arn = aws_iam_instance_profile.ecs-consumer-task-profile.arn
   }
@@ -89,16 +89,35 @@ resource "aws_ecs_task_definition" "ecs-consumer-task-definition" {
   family             = "lecture-analyzer-ecs-consumer"
   task_role_arn      = aws_iam_role.ecs-consumer-task-role.arn
   execution_role_arn = aws_iam_role.ecs-consumer-task-execution-role.arn
-  network_mode       = "awsvpc"
+  network_mode       = "host"
   cpu                = 1024
   memory             = 952
   container_definitions = jsonencode([{
-    cpu         = 1024
-    memory      = 952
-    name        = "lecture-analyzer-consumer-container"
-    image       = "${aws_ecrpublic_repository.consumer-images.repository_uri}:latest"
-    essential   = true
-    environment = []
+    cpu       = 1024
+    memory    = 952
+    name      = "lecture-analyzer-consumer-container"
+    image     = "${aws_ecrpublic_repository.consumer-images.repository_uri}:latest"
+    essential = true
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "ecs-consumer"
+        "awslogs-region"        = "us-east-1"
+        "awslogs-stream-prefix" = "ecs-consumer-stream"
+      }
+    }
+    environment = [
+      {
+        name  = "REDIS_URL"
+        value = "${aws_elasticache_replication_group.task-queue.primary_endpoint_address}:6379"
+      }
+    ]
+    secrets = [
+      {
+        name      = "OPENAI_API_KEY"
+        valueFrom = aws_ssm_parameter.OPENAI_API_KEY.arn
+      }
+    ]
   }])
 }
 
@@ -112,10 +131,6 @@ resource "aws_ecs_service" "consumer-service" {
     capacity_provider = aws_ecs_capacity_provider.ecs-consumer-capacity-provider.name
     base              = 1
     weight            = 100
-  }
-  network_configuration {
-    subnets         = aws_subnet.private-subnets[*].id
-    security_groups = [aws_security_group.ecs-node-sg.id]
   }
   depends_on = [aws_ecs_cluster_capacity_providers.ecs-consumer-capacity-provider]
 }

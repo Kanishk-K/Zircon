@@ -270,6 +270,41 @@ resource "aws_security_group_rule" "producer-redis-egress" {
   source_security_group_id = aws_security_group.elasticache-sg.id
 }
 
+# CREATES a security group to allow the consumer service to communicate with resources
+resource "aws_security_group" "consumer-sg" {
+  name   = "lecture-analyzer-consumer-sg"
+  vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    # OpenAI, Polly, etc routed through NAT Gateway
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# APPENDS an ingress rule to the consumer security group to allow traffic from the ElastiCache security group
+resource "aws_security_group_rule" "consumer-redis-ingress" {
+  type                     = "ingress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.consumer-sg.id
+  source_security_group_id = aws_security_group.elasticache-sg.id
+}
+
+# APPENDS an egress rule to the consumer security group to allow traffic to the ElastiCache security group
+resource "aws_security_group_rule" "consumer-redis-egress" {
+  type                     = "egress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.consumer-sg.id
+  source_security_group_id = aws_security_group.elasticache-sg.id
+}
+
+# CREATES a security group for the ElastiCache cluster to allow traffic from the producer and consumer services
 resource "aws_security_group" "elasticache-sg" {
   name        = "lecture-analyzer-elasticache-sg"
   description = "Security group for the ElastiCache cluster"
@@ -279,12 +314,12 @@ resource "aws_security_group" "elasticache-sg" {
     from_port       = 6379
     to_port         = 6379
     protocol        = "tcp"
-    security_groups = [aws_security_group.producer-sg.id]
+    security_groups = [aws_security_group.producer-sg.id, aws_security_group.consumer-sg.id]
   }
   egress {
     from_port       = 6379
     to_port         = 6379
     protocol        = "tcp"
-    security_groups = [aws_security_group.producer-sg.id]
+    security_groups = [aws_security_group.producer-sg.id, aws_security_group.consumer-sg.id]
   }
 }
