@@ -97,7 +97,7 @@ func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx con
 		}
 		_, err = p.asynqClient.Enqueue(task, asynq.TaskID(
 			fmt.Sprintf("video:%s", data.EntryID)),
-			asynq.Queue("default"),
+			asynq.Queue("low"),
 			asynq.TaskID(fmt.Sprintf("video:%s", data.EntryID)),
 			asynq.Retention(time.Hour),
 		)

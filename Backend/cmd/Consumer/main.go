@@ -49,22 +49,36 @@ func main() {
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: redisUrl})
 	defer asynqClient.Close()
 
-	srv := asynq.NewServer(
-		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
-		asynq.Config{
-			// Specify how many concurrent workers to use
-			Concurrency: 1,
-			// Optionally specify multiple queues with different priority.
-			Queues: map[string]int{"default": 1},
-			// See the godoc for other configuration options
-		},
-	)
+	var srv *asynq.Server
+	if os.Getenv("API_ONLY") == "true" {
+		srv = asynq.NewServer(
+			asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
+			asynq.Config{
+				// Specify how many concurrent workers to use
+				Concurrency: 20,
+				// We do not want to process any video tasks.
+				Queues: map[string]int{"default": 2},
+			},
+		)
+	} else {
+		srv = asynq.NewServer(
+			asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
+			asynq.Config{
+				// Specify how many concurrent workers to use
+				Concurrency: 1,
+				// We are okay processing both video and non-video tasks. However, do one at a time.
+				Queues: map[string]int{"default": 2, "low": 1},
+			},
+		)
+	}
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeGenerateNotes, tasks.NewGenerateNotesProcess(openAIClient, s3Client, dynamoClient).HandleGenerateNotesTask)
 	mux.HandleFunc(tasks.TypeSummarizeTranscription, tasks.NewSummarizeTranscriptionProcess(openAIClient, s3Client, dynamoClient, asynqClient).HandleSummarizeTranscriptionTask)
-	mux.HandleFunc(tasks.TypeGenerateVideo, tasks.NewGenerateVideoProcess(pollyClient, s3Client, dynamoClient).HandleGenerateVideoTask)
+	if os.Getenv("API_ONLY") != "true" {
+		mux.HandleFunc(tasks.TypeGenerateVideo, tasks.NewGenerateVideoProcess(pollyClient, s3Client, dynamoClient).HandleGenerateVideoTask)
+	}
 	// ...register other handlers...
 
 	if err := srv.Run(mux); err != nil {

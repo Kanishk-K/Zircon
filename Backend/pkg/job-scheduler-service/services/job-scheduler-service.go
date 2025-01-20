@@ -154,7 +154,7 @@ func (js *JobSchedulerService) ScheduleJob(jobInfo *models.JobQueueRequest) erro
 			log.Println("Failed to create video task: ", err)
 			return err
 		}
-		_, err = js.asynqClient.Enqueue(task, asynq.TaskID(fmt.Sprintf("video:%s", jobInfo.EntryID)), asynq.Queue("default"), asynq.Retention(time.Hour))
+		_, err = js.asynqClient.Enqueue(task, asynq.TaskID(fmt.Sprintf("video:%s", jobInfo.EntryID)), asynq.Queue("low"), asynq.Retention(time.Hour))
 		switch {
 		case errors.Is(err, asynq.ErrTaskIDConflict):
 			log.Println("Task already exists, skipping")

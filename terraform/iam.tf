@@ -137,7 +137,7 @@ resource "aws_iam_instance_profile" "ecs-consumer-task-profile" {
 # DEFINE the dynamodb access policy for the ECS Consumer Task Role
 data "aws_iam_policy_document" "ecs-consumer-task-dynamodb" {
   statement {
-    actions = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:UpdateItem"]
+    actions = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
     resources = [
       aws_dynamodb_table.jobs-table.arn,
     ]
