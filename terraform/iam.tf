@@ -4,6 +4,7 @@
 # -> ECS Producer Task Execution Role (Applied to the ECS producer service)
 # -> ECS Consumer Task Role (Applied to EC2 consumer instances)
 # -> ECS Consumer Task Execution Role (Applied to the ECS consumer service)
+# -> S3 CloudFront Origin Access Control Policy
 
 # DEFINE the trust policy for the ECS Task Role
 data "aws_iam_policy_document" "ecs-task-trust-policy" {
@@ -163,12 +164,12 @@ data "aws_iam_policy_document" "ecs-consumer-task-s3" {
     effect  = "Allow"
     actions = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
     resources = [
-      "${aws_s3_bucket.s3_bucket.arn}/*"
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*"
     ]
   }
   statement {
-    effect  = "Deny"
-    actions = ["s3:PutObject", "s3:DeleteObject"]
+    effect  = "Allow"
+    actions = ["s3:GetObject"]
     resources = [
       "${aws_s3_bucket.s3_bucket.arn}/background/*"
     ]
@@ -249,4 +250,22 @@ resource "aws_iam_policy" "ecs-consumer-task-execution-secrets" {
 resource "aws_iam_role_policy_attachment" "ecs-consumer-task-execution-policy" {
   role       = aws_iam_role.ecs-consumer-task-execution-role.name
   policy_arn = aws_iam_policy.ecs-consumer-task-execution-secrets.arn
+}
+
+# DEFINE the s3 access policy for CloudFront
+data "aws_iam_policy_document" "read_content" {
+  # Allow access to the content in the bucket
+  statement {
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.s3_bucket.arn}/assets/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.web_routing.arn]
+    }
+  }
 }

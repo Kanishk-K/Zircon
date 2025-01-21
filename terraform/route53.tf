@@ -3,8 +3,8 @@ resource "aws_route53_record" "base" {
   name    = var.DOMAIN
   type    = "A"
   alias {
-    name                   = aws_lb.producer-alb.dns_name
-    zone_id                = aws_lb.producer-alb.zone_id
+    name                   = aws_cloudfront_distribution.web_routing.domain_name
+    zone_id                = aws_cloudfront_distribution.web_routing.hosted_zone_id
     evaluate_target_health = false
   }
 }
@@ -14,8 +14,8 @@ resource "aws_route53_record" "www" {
   name    = "www.${var.DOMAIN}"
   type    = "A"
   alias {
-    name                   = aws_lb.producer-alb.dns_name
-    zone_id                = aws_lb.producer-alb.zone_id
+    name                   = aws_cloudfront_distribution.web_routing.domain_name
+    zone_id                = aws_cloudfront_distribution.web_routing.hosted_zone_id
     evaluate_target_health = false
   }
 }

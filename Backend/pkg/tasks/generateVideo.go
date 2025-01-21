@@ -149,7 +149,7 @@ func (p *GenerateVideoProcess) HandleGenerateVideoTask(ctx context.Context, t *a
 	// Upload the video to S3
 	_, err = p.s3Client.PutObject(&s3.PutObjectInput{
 		Bucket:      aws.String("lecture-processor"),
-		Key:         aws.String(fmt.Sprintf("%s/%s.mp4", data.EntryID, data.BackgroundVideo)),
+		Key:         aws.String(fmt.Sprintf("assets/%s/%s.mp4", data.EntryID, data.BackgroundVideo)),
 		ContentType: aws.String("video/mp4"),
 		Body:        outputFp,
 	})
@@ -174,7 +174,7 @@ func (p *GenerateVideoProcess) GenerateMediaFiles(ctx context.Context, mp3Fp *os
 	// Get the summary
 	result, err := p.s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("lecture-processor"),
-		Key:    aws.String(fmt.Sprintf("%s/Summary.txt", *entryID)),
+		Key:    aws.String(fmt.Sprintf("assets/%s/Summary.txt", *entryID)),
 	})
 	if err != nil {
 		log.Printf("Failed to get summary from S3: %v", err)
@@ -207,7 +207,7 @@ func (p *GenerateVideoProcess) FetchMediaFiles(ctx context.Context, mp3Fp *os.Fi
 	// Get MP3
 	mp3Output, err := p.s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("lecture-processor"),
-		Key:    aws.String(fmt.Sprintf("%s/Audio.mp3", *entryID)),
+		Key:    aws.String(fmt.Sprintf("assets/%s/Audio.mp3", *entryID)),
 	})
 	if err != nil {
 		log.Printf("Failed to fetch Mp3 from S3: %v", err)
@@ -223,7 +223,7 @@ func (p *GenerateVideoProcess) FetchMediaFiles(ctx context.Context, mp3Fp *os.Fi
 	// Get Subtitles
 	subtitlesOutput, err := p.s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("lecture-processor"),
-		Key:    aws.String(fmt.Sprintf("%s/Subtitles.ass", *entryID)),
+		Key:    aws.String(fmt.Sprintf("assets/%s/Subtitles.ass", *entryID)),
 	})
 	if err != nil {
 		log.Printf("Failed to fetch Subtitle from S3: %v", err)
@@ -257,7 +257,7 @@ func (p *GenerateVideoProcess) GenerateMP3(ctx context.Context, mp3Fp *os.File, 
 		Engine:             aws.String(polly.EngineStandard),
 		Text:               aws.String(string(*summary)),
 		OutputS3BucketName: aws.String("lecture-processor"),
-		OutputS3KeyPrefix:  aws.String(fmt.Sprintf("%s/Audio-", *entryID)),
+		OutputS3KeyPrefix:  aws.String(fmt.Sprintf("assets/%s/Audio-", *entryID)),
 	}
 
 	mp3Generation, err := p.pollyClient.StartSpeechSynthesisTask(TTSMp3Input)
@@ -276,8 +276,8 @@ func (p *GenerateVideoProcess) GenerateMP3(ctx context.Context, mp3Fp *os.File, 
 
 	_, err = p.s3Client.CopyObject(&s3.CopyObjectInput{
 		Bucket:     aws.String("lecture-processor"),
-		CopySource: aws.String(fmt.Sprintf("lecture-processor/%s/Audio-.%s.mp3", *entryID, *mp3Generation.SynthesisTask.TaskId)),
-		Key:        aws.String(fmt.Sprintf("%s/Audio.mp3", *entryID)),
+		CopySource: aws.String(fmt.Sprintf("lecture-processor/assets/%s/Audio-.%s.mp3", *entryID, *mp3Generation.SynthesisTask.TaskId)),
+		Key:        aws.String(fmt.Sprintf("assets/%s/Audio.mp3", *entryID)),
 	})
 	if err != nil {
 		log.Printf("Failed to copy mp3 file: %v", err)
@@ -285,7 +285,7 @@ func (p *GenerateVideoProcess) GenerateMP3(ctx context.Context, mp3Fp *os.File, 
 	}
 	_, err = p.s3Client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String("lecture-processor"),
-		Key:    aws.String(fmt.Sprintf("%s/Audio-.%s.mp3", *entryID, *mp3Generation.SynthesisTask.TaskId)),
+		Key:    aws.String(fmt.Sprintf("assets/%s/Audio-.%s.mp3", *entryID, *mp3Generation.SynthesisTask.TaskId)),
 	})
 	if err != nil {
 		log.Printf("Failed to delete temp mp3 file: %v", err)
@@ -293,7 +293,7 @@ func (p *GenerateVideoProcess) GenerateMP3(ctx context.Context, mp3Fp *os.File, 
 	}
 	output, err := p.s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("lecture-processor"),
-		Key:    aws.String(fmt.Sprintf("%s/Audio.mp3", *entryID)),
+		Key:    aws.String(fmt.Sprintf("assets/%s/Audio.mp3", *entryID)),
 	})
 	if err != nil {
 		log.Printf("Failed to download mp3 file from s3: %v", err)
@@ -331,7 +331,7 @@ func (p *GenerateVideoProcess) GenerateSubtitles(ctx context.Context, subtitlesF
 		Text:               aws.String(string(*summary)),
 		SpeechMarkTypes:    aws.StringSlice([]string{polly.SpeechMarkTypeWord}),
 		OutputS3BucketName: aws.String("lecture-processor"),
-		OutputS3KeyPrefix:  aws.String(fmt.Sprintf("%s/Words-", *entryID)),
+		OutputS3KeyPrefix:  aws.String(fmt.Sprintf("assets/%s/Words-", *entryID)),
 	}
 
 	marksGeneration, err := p.pollyClient.StartSpeechSynthesisTask(TTSMarksInput)
@@ -350,7 +350,7 @@ func (p *GenerateVideoProcess) GenerateSubtitles(ctx context.Context, subtitlesF
 
 	output, err := p.s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String("lecture-processor"),
-		Key:    aws.String(fmt.Sprintf("%s/Words-.%s.marks", *entryID, *marksGeneration.SynthesisTask.TaskId)),
+		Key:    aws.String(fmt.Sprintf("assets/%s/Words-.%s.marks", *entryID, *marksGeneration.SynthesisTask.TaskId)),
 	})
 	if err != nil {
 		log.Printf("Failed to download mp3 file from s3: %v", err)
@@ -372,7 +372,7 @@ func (p *GenerateVideoProcess) GenerateSubtitles(ctx context.Context, subtitlesF
 
 	_, err = p.s3Client.PutObject(&s3.PutObjectInput{
 		Bucket:      aws.String("lecture-processor"),
-		Key:         aws.String(fmt.Sprintf("%s/Subtitles.ass", *entryID)),
+		Key:         aws.String(fmt.Sprintf("assets/%s/Subtitles.ass", *entryID)),
 		ContentType: aws.String("application/x-ass"),
 		Body:        subtitlesFp,
 	})

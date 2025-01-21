@@ -69,7 +69,7 @@ func (p *SummarizeTranscriptionProcess) HandleSummarizeTranscriptionTask(ctx con
 	// Upload summary to S3
 	_, err = p.s3Client.PutObject(&s3.PutObjectInput{
 		Bucket:      aws.String("lecture-processor"),
-		Key:         aws.String(fmt.Sprintf("%s/Summary.txt", data.EntryID)),
+		Key:         aws.String(fmt.Sprintf("assets/%s/Summary.txt", data.EntryID)),
 		ContentType: aws.String("text/plain"),
 		Body:        bytes.NewReader([]byte(summary)),
 	})
@@ -134,7 +134,7 @@ func (p *SummarizeTranscriptionProcess) generateSummary(ctx context.Context, tra
 	chatCompletion, err := p.LLMClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(
-				"Imagine you are a university instructor preparing to deliver a lecture. Your goal is to explain concepts in great detail, ensuring everything is clear and accessible, even abstract ideas. Approach the explanations as if you're speaking directly to a student, weaving simple relatable examples into your teaching. Skip any formatting: no bullet points, code, images, or structured sections. Dive into each concept thoroughly, breaking it down step-by-step, using approachable analogies to make even the most complex ideas easy to understand. Always provide enough context for your examples to make them meaningful and engaging.",
+				"Imagine you are a university instructor preparing to summarize a lecture. Your goal is to explain concepts in great detail, ensuring everything is clear and accessible, even abstract ideas. Approach the explanations as if you're speaking directly to a student, weaving simple relatable examples into your teaching. DO NOT INCLUDE ANY bullet points, code, images, or structured sections. Dive into each concept thoroughly, breaking it down step-by-step, using approachable analogies to make even the most complex ideas easy to understand. Always provide enough context for your examples to make them meaningful and engaging. Do not include a preface to your response.",
 			),
 			openai.UserMessage(*transcriptData),
 		}),

@@ -64,7 +64,7 @@ func (p *GenerateNotesProcess) HandleGenerateNotesTask(ctx context.Context, t *a
 	// Upload notes to S3
 	_, err = p.s3Client.PutObject(&s3.PutObjectInput{
 		Bucket:      aws.String("lecture-processor"),
-		Key:         aws.String(fmt.Sprintf("%s/Notes.md", data.EntryID)),
+		Key:         aws.String(fmt.Sprintf("/assets/%s/Notes.md", data.EntryID)),
 		ContentType: aws.String("text/markdown"),
 		Body:        bytes.NewReader([]byte(notes)),
 	})
