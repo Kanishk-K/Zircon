@@ -50,7 +50,7 @@ async function generateProdMarkdown(entryID:string){
     try {
         const s3Response = await s3Client.send(new GetObjectCommand({
             Bucket: process.env.AWS_BUCKET_NAME as string,
-            Key: `${entryID}/Notes.md`,
+            Key: `assets/${entryID}/Notes.md`,
         }));
         if (!s3Response.Body) {
             try {
