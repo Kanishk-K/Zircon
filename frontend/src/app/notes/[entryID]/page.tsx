@@ -14,15 +14,8 @@ const shikiOptions = {
 }
 
 async function generateProdMarkdown(entryID:string){
-    try {
-        const response = await fetch(`https://analysis.socialcoding.net/assets/${entryID}/Notes.md`)
-        if (!response.ok) {
-            return (
-                <div className="flex w-full min-h-64 text-center text-5xl lg:text-6xl text-foreground">
-                    <div className="m-auto">{"404: No Notes Found :("}</div>
-                </div>
-            )
-        }
+    const response = await fetch(`https://analysis.socialcoding.net/assets/${entryID}/Notes.md`)
+    if (response.ok) {
         const text = await response.text();
         return <MDXRemote components={components} source={text} options={
             {
@@ -32,12 +25,6 @@ async function generateProdMarkdown(entryID:string){
                 }
             }
         }/>;
-    } catch {
-        return (
-            <div className="flex w-full min-h-64 text-center text-5xl lg:text-6xl text-foreground">
-                <div className="m-auto">{"500: Server Couldn't Be Contacted :("}</div>
-            </div>
-        )
     }
 }
 
