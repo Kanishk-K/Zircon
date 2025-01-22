@@ -17,10 +17,10 @@ export default function Footer() {
                     </div>
                 </div>
                 <div className="hidden md:flex flex-row items-center gap-6">
-                    <a href="#" className="hover:text-foreground dark:text-neutral-400 text-neutral-600">About</a>
-                    <a href="#" className="hover:text-foreground dark:text-neutral-400 text-neutral-600">Notes</a>
-                    <a href="#" className="hover:text-foreground dark:text-neutral-400 text-neutral-600">System Status</a>
-                    <a href="#" className="hover:text-foreground dark:text-neutral-400 text-neutral-600">Github</a>
+                    <a href="/notes" className="hover:text-foreground text-neutral-400">Notes</a>
+                    <a href="#" className="hover:text-foreground text-neutral-400">System Status</a>
+                    <a href="#" className="hover:text-foreground text-neutral-400">Github</a>
+                    <a href="#" className="hover:text-foreground text-neutral-400">About</a>
                 </div>
         </footer>
     );

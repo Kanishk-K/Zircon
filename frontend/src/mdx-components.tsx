@@ -27,7 +27,7 @@ const ulComponent = (props: {children: React.ReactNode}) => {
             <div className={"absolute -left-2 -top-5 bg-brand p-2 rounded-xl group-[.parent-list]:hidden"}>
                 <FaListUl className='text-background' size={'1.25rem'} />
             </div>
-            <ul className={"list-disc dark:text-neutral-400 text-neutral-600 marker:text-brand marker:font-bold dark:bg-black bg-white dark:bg-opacity-20 pl-8 py-2 pt-6 pr-4 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:pr-0 group-[.parent-list]:pl-4 group-[.parent-list]:border-l-0 group-[.parent-list]:bg-transparent"}>
+            <ul className={"list-disc text-neutral-400 marker:text-brand marker:font-bold bg-black bg-opacity-20 pl-8 py-2 pt-6 pr-4 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:pr-0 group-[.parent-list]:pl-4 group-[.parent-list]:border-l-0 group-[.parent-list]:bg-transparent"}>
                 {props.children}
             </ul>
       </div>
@@ -40,7 +40,7 @@ const olComponent = (props: {children: React.ReactNode}) => {
             <div className={"absolute -left-2 -top-5 bg-brand p-2 rounded-xl group-[.parent-list]:hidden"}>
                 <FaListOl className='text-background' size={'1.25rem'} />
             </div>
-            <ul className={"list-decimal dark:text-neutral-400 text-neutral-600 marker:text-brand marker:font-bold dark:bg-black bg-white dark:bg-opacity-20 pl-8 py-2 pt-6 pr-4 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:pr-0 group-[.parent-list]:pl-4 group-[.parent-list]:border-l-0 group-[.parent-list]:bg-transparent"}>
+            <ul className={"list-decimal text-neutral-400 marker:text-brand marker:font-bold bg-black bg-opacity-20 pl-8 py-2 pt-6 pr-4 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:pr-0 group-[.parent-list]:pl-4 group-[.parent-list]:border-l-0 group-[.parent-list]:bg-transparent"}>
                 {props.children}
             </ul>
       </div>
@@ -53,7 +53,7 @@ const blockquoteComponent = (props: {children: React.ReactNode}) => {
             <div className={"absolute -left-2 -top-5 bg-brand p-2 rounded-xl group-[.parent-list]:hidden"}>
                 <FaQuoteLeft className='text-background' size={'1.25rem'} />
             </div>
-            <ol className={"dark:bg-black bg-white dark:bg-opacity-20 pl-2 py-2 pt-6 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:ml-2 group-[.parent-list]:my-4 group-[.parent-list]:rounded-none group-[.parent-list]:border-l-2 group-[.parent-list]:border-opacity-60 group-[.parent-list]:bg-transparent"}>
+            <ol className={"bg-black bg-opacity-20 pl-2 py-2 pt-6 rounded-md space-y-1 border-brand border-l-4 group parent-list group-[.parent-list]:pt-2 group-[.parent-list]:ml-2 group-[.parent-list]:my-4 group-[.parent-list]:rounded-none group-[.parent-list]:border-l-2 group-[.parent-list]:border-opacity-60 group-[.parent-list]:bg-transparent"}>
                 {props.children}
             </ol>
         </blockquote>
@@ -62,7 +62,7 @@ const blockquoteComponent = (props: {children: React.ReactNode}) => {
 
 export const components = {
     h1: (props: HeadingProps) => {
-        return <h1 className={`${headingFont.className} font-bold text-4xl lg:text-5xl pt-12 mb-0`} {...props} />;
+        return <h1 className={`${headingFont.className} font-bold text-4xl lg:text-5xl pt-12 mb-3`} {...props} />;
     },
     h2: (props: HeadingProps) => {
         return <h2 className={`${headingFont.className} font-bold text-3xl lg:text-4xl mt-8 mb-3`} {...props} />;
@@ -89,7 +89,7 @@ export const components = {
     },
     blockquote : blockquoteComponent,
     code : (props: CodeProps) => {
-        return <code className="dark:bg-black bg-white bg-opacity-20 text-brand p-1 rounded-md" {...props} />;
+        return <code className="bg-black bg-opacity-20 text-brand p-1 rounded-md" {...props} />;
     },
     strong : (props: StrongProps) => {
         return <strong className="font-bold text-foreground" {...props} />;
@@ -106,7 +106,7 @@ export const components = {
                     <thead className={`${headingFont.className} text-brand font-bold md:text-xl border-brand border-b-2 border-spacing-2 text-left`}>
                         {(header as React.ReactElement<React.HTMLProps<HTMLTableSectionElement>>).props.children as React.ReactNode[]}
                     </thead>
-                    <tbody className='dark:text-neutral-400 text-neutral-600'>
+                    <tbody className='text-neutral-400'>
                         {(body as React.ReactElement<React.HTMLProps<HTMLTableSectionElement>>).props.children as React.ReactNode[]}
                     </tbody>
                 </table>

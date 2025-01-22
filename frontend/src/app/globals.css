@@ -4,7 +4,7 @@
 
 @layer base {
   p {
-    @apply text-lg lg:text-xl dark:text-neutral-400 text-neutral-600;
+    @apply text-lg lg:text-xl text-neutral-400;
   }
   th,
   td {
@@ -51,11 +51,16 @@
 }
 
 :root {
-  --background: #fff9ed;
+  /* --background: #fff9ed;
   --foreground: #171717;
   --color-brand: #7f1d1d;
   --color-card: #ffffff;
-  --color-card-border: #e0e0e0;
+  --color-card-border: #e0e0e0; */
+  --background: #131313;
+  --foreground: #ffffff;
+  --color-brand: #c59f63;
+  --color-card: #1d1d1d;
+  --color-card-border: #2d2d2d;
 }
 
 @media (prefers-color-scheme: dark) {
