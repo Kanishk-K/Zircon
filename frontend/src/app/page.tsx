@@ -25,13 +25,13 @@ export default function Home() {
           <div className="flex flex-col w-full gap-4">
             <p className="text-foreground font-semibold text-center text-4xl lg:text-3xl lg:font-normal"><span className="text-brand">Connect</span> with UMN Resources</p>
           </div>
-          <Image src="/connections.svg" alt="UMN Integrations" className="lg:absolute lg:w-auto h-full object-contain blur-image" width={556} height={498}/>
+          <Image src="/Connections.svg" alt="UMN Integrations" className="lg:absolute lg:w-auto h-full object-contain blur-image" width={556} height={498}/>
         </div>
         <div className="relative flex flex-col lg:flex-row items-center bg-none lg:bg-card lg:border-2 lg:border-cardborder lg:rounded-2xl lg:p-8 lg:items-end lg:justify-center">
           <div className="flex flex-col w-full gap-4">
             <p className="text-foreground font-semibold text-center text-4xl lg:text-3xl lg:font-normal"><span className="text-brand">Download</span> unlimited HD lectures</p>
           </div>
-          <Image src="/download.png" alt="Downloading Feature" className="lg:absolute lg:w-auto h-full object-contain blur-image" width={556} height={498}/>
+          <Image src="/Download.png" alt="Downloading Feature" className="lg:absolute lg:w-auto h-full object-contain blur-image" width={556} height={498}/>
         </div>
       </div>
 
@@ -42,7 +42,7 @@ export default function Home() {
             <p>Choose from a selection including Minecraft, Subway Surfers, and many more!</p>
           </div>
           <div className="flex justify-center w-full lg:w-1/2">
-            <Image src="/mobile.png" alt="Mobile Feature" className="object-contain w-3/4" width={4320} height={4320}/>
+            <Image src="/Mobile.png" alt="Mobile Feature" className="object-contain w-3/4" width={4320} height={4320}/>
           </div>
         </div>
       </div>
