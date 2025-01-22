@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa6";
 
 export default function Home() {
@@ -9,7 +10,7 @@ export default function Home() {
           <h1 className="text-5xl lg:text-7xl font-semibold leading-snug">Turn Lectures into <span className="text-brand">Insights</span></h1>
           <p>Analyze, summarize, and engage with your lectures like never before. Generate notes, create video content, and download content for offline use!</p>
           <div className="flex flex-row items-center gap-4">
-            <a href="#" className="border-2 border-brand text-brand rounded-lg p-2 md:text-xl">Learn More</a>
+            <Link href="/notes" className="border-2 border-brand text-brand rounded-lg p-2 md:text-xl">See An Example</Link>
             <a href="#" className="p-2 bg-brand text-background rounded-lg md:text-xl flex flex-row items-center gap-2">Get Started <FaArrowRight /></a>
           </div>
         </div>

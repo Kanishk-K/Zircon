@@ -20,7 +20,7 @@ export default function Footer() {
                 <div className="hidden md:flex flex-row items-center gap-6">
                     <Link href="/notes" className="hover:text-foreground text-neutral-400">Notes</Link>
                     <a href="#" className="hover:text-foreground text-neutral-400">System Status</a>
-                    <a href="#" className="hover:text-foreground text-neutral-400">Github</a>
+                    <a href="https://github.com/Kanishk-K/Zircon" className="hover:text-foreground text-neutral-400">Github</a>
                     <a href="#" className="hover:text-foreground text-neutral-400">About</a>
                 </div>
         </footer>

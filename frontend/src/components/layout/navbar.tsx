@@ -13,10 +13,10 @@ export default function Navbar() {
                     <a href="#" className="hover:text-foreground text-neutral-400">About</a>
                     <Link href="/notes" className="hover:text-foreground text-neutral-400">Notes</Link>
                     <a href="#" className="hover:text-foreground text-neutral-400">System Status</a>
-                    <a href="#" className="hover:text-foreground text-neutral-400 flex flex-row items-center gap-2">Github <FaGithub /></a>
+                    <a href="https://github.com/Kanishk-K/Zircon" className="hover:text-foreground text-neutral-400 flex flex-row items-center gap-2">Github <FaGithub /></a>
                     <a href="#" className="p-2 bg-brand text-background font-medium rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-md">Get Started</a>
                 </div>
-                <a href="#" className="md:hidden text-brand font-medium rounded-lg flex items-center"><FaGithub size={'2em'} /></a>
+                <a href="https://github.com/Kanishk-K/Zircon" className="md:hidden text-brand font-medium rounded-lg flex items-center"><FaGithub size={'2em'} /></a>
             </div>
         </nav>
     )
