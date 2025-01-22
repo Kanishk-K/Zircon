@@ -1,9 +1,5 @@
 import { components } from '@/mdx-components';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import { MDXRemote } from 'next-mdx-remote/rsc';
-import { redirect } from 'next/navigation';
 import rehypePrettyCode from 'rehype-pretty-code';
 import remarkGfm from 'remark-gfm';
 
@@ -11,17 +7,7 @@ import remarkGfm from 'remark-gfm';
 export const revalidate = false;
 // Render from static params, allow dynamic params (run-time)
 export const dynamicParams = true;
-
-const credentials = {
-    region: process.env.AWS_REGION as string,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
-    },
-}
-
-const s3Client = new S3Client(credentials);
-const dbClient = new DynamoDBClient(credentials)
+export const dynamic = 'force-static';
 
 const shikiOptions = {
     theme: {
@@ -31,37 +17,16 @@ const shikiOptions = {
 }
 
 async function generateProdMarkdown(entryID:string){
-    const command = new GetCommand({
-        TableName: process.env.AWS_DYNAMODB_TABLE as string,
-        Key: {
-            entryID: entryID
-        },
-    })
-    const dbResponse = await dbClient.send(command);
-    if (!dbResponse.Item || !dbResponse.Item.notesGenerated) {
-        try {
-            throw new Error('Entry not found in database!');
-        } catch (e) {
-            console.log (e);
-            redirect("/")
-        }
-    } 
-
-    try {
-        const s3Response = await s3Client.send(new GetObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME as string,
-            Key: `assets/${entryID}/Notes.md`,
-        }));
-        if (!s3Response.Body) {
-            try {
-                throw new Error('No body in S3 response!');
-            } catch (e) {
-                console.log(e);
-                redirect("/");
-            }
-        }
-        const text = await s3Response.Body.transformToString();
-        return <MDXRemote components={components} source={text} options={
+    const response = await fetch(`https://analysis.socialcoding.net/assets/${entryID}/Notes.md`)
+    if (!response.ok) {
+        return (
+            <div className="flex w-full min-h-64 text-center text-5xl lg:text-6xl text-foreground">
+                <div className="m-auto">{"404: No Notes Found :("}</div>
+            </div>
+        )
+    }
+    const text = await response.text();
+    return <MDXRemote components={components} source={text} options={
         {
             mdxOptions: {
                 remarkPlugins: [[remarkGfm]],
@@ -69,10 +34,6 @@ async function generateProdMarkdown(entryID:string){
             }
         }
     }/>;
-    } catch (e) {
-        console.log(e);
-        redirect("/");
-    }
 }
 
 export default async function RemoteMDXPage({params}:{params: Promise<{entryID: string}>}) {
