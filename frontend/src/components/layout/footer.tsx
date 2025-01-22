@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { FaGithub, FaHouse, FaLinkedin } from "react-icons/fa6";
 
 export default function Footer() {
@@ -17,7 +18,7 @@ export default function Footer() {
                     </div>
                 </div>
                 <div className="hidden md:flex flex-row items-center gap-6">
-                    <a href="/notes" className="hover:text-foreground text-neutral-400">Notes</a>
+                    <Link href="/notes" className="hover:text-foreground text-neutral-400">Notes</Link>
                     <a href="#" className="hover:text-foreground text-neutral-400">System Status</a>
                     <a href="#" className="hover:text-foreground text-neutral-400">Github</a>
                     <a href="#" className="hover:text-foreground text-neutral-400">About</a>

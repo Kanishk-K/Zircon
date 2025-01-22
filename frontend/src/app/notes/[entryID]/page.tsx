@@ -1,6 +1,5 @@
 import { components } from '@/mdx-components';
 import { MDXRemote } from 'next-mdx-remote/rsc';
-import { notFound } from 'next/navigation';
 import rehypePrettyCode from 'rehype-pretty-code';
 import remarkGfm from 'remark-gfm';
 
@@ -33,7 +32,7 @@ async function generateProdMarkdown(entryID:string){
                 }
             }
         }/>;
-    } catch (error) {
+    } catch {
         return (
             <div className="flex w-full min-h-64 text-center text-5xl lg:text-6xl text-foreground">
                 <div className="m-auto">{"500: Server Couldn't Be Contacted :("}</div>
