@@ -53,7 +53,7 @@ async function processItem(element) {
   }
   if (mediaInformation.transcript !== null) {
     const processButton = document.createElement("a");
-    processButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"  viewBox="0 0 256 256"><path d="M178.34,165.66,160,147.31V208a8,8,0,0,1-16,0V147.31l-18.34,18.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0l32,32a8,8,0,0,1-11.32,11.32ZM160,40A88.08,88.08,0,0,0,81.29,88.68,64,64,0,1,0,72,216h40a8,8,0,0,0,0-16H72a48,48,0,0,1,0-96c1.1,0,2.2,0,3.29.12A88,88,0,0,0,72,128a8,8,0,0,0,16,0,72,72,0,1,1,100.8,66,8,8,0,0,0,3.2,15.34,7.9,7.9,0,0,0,3.2-.68A88,88,0,0,0,160,40Z"></path></svg>`;
+    processButton.innerHTML = `<svg width="156" height="174" viewBox="0 0 156 174" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M146 137.74L155.942 132V93H146V137.74ZM146 81H155.942V42L146 36.2598V81ZM134 31V81H116.971V64.5L83.9999 45.4641V31H134ZM39.0288 81V64.5L71.9999 45.4641V31H21.9999V81H39.0288ZM39.0288 93H21.9999V143H71.9999V128.536L39.0288 109.5V93ZM83.9999 128.536V143H134V93H116.971V109.5L83.9999 128.536ZM116.105 155L83.9999 173.536V155H116.105ZM116.105 19H83.9999V0.464081L116.105 19ZM71.9999 19V0.464134L39.8949 19H71.9999ZM71.9999 173.536V155H39.8948L71.9999 173.536ZM9.99992 36.2599V81H0.0576782V42L9.99992 36.2599ZM9.99992 93V137.74L0.0576782 132V93H9.99992Z" fill="#C59F63"/></svg>`;
     processButton.onclick = async function () {
       // Send a message to the background script to open the process page
       await chrome.runtime.sendMessage({

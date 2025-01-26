@@ -1,5 +1,5 @@
-const SERVERHOST = "https://analysis.socialcoding.net";
-chrome.storage.local.clear(); // Remove before deploying to prod, deletes auth information on each reload.
+const SERVERHOST = "http://localhost:8080";
+// chrome.storage.local.clear(); // Remove before deploying to prod, deletes auth information on each reload.
 
 // Checks if tab is loaded
 function onTabLoaded(tabId) {
@@ -80,14 +80,24 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
       if (jsonPayload) {
         chrome.storage.local.set({ AUTH: jsonPayload }, function () {});
+        // Close the tab
+        chrome.tabs.update({
+          url: "/static/html/login_success.html",
+          active: true,
+        });
       } else {
         console.error("Failed to extract JSON payload.");
+        chrome.tabs.update({
+          url: "/static/html/login_failure.html",
+          active: true,
+        });
       }
-
-      // Close the tab
-      chrome.tabs.remove(tabId);
     } catch (error) {
       console.error("Error handling callback page:", error);
+      chrome.tabs.update({
+        url: "/static/html/login_failure.html",
+        active: true,
+      });
     }
   }
 });

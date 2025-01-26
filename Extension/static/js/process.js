@@ -1,63 +1,16 @@
-const SERVERHOST = "https://analysis.socialcoding.net";
+const SERVERHOST = "http://localhost:8080";
 let payload = undefined;
 let jwt = undefined;
 const statusMapping = {
-  0: "Not Queued/Requested",
-  1: "Actively Processing",
-  2: "Pending Processing",
-  3: "Task Scheduled",
-  4: "Aiming For Retry",
-  5: "Task Archived/Failed",
-  6: "Task Completed",
-  7: "Task Aggregating Into Group",
+  0: ["generation requested", "REQUEST"],
+  1: ["generation currently processing", "QUEUE"],
+  2: ["generation awaiting processing", "QUEUE"],
+  // 3: "Task Scheduled", // Not used
+  // 4: "Aiming For Retry", // Not used
+  5: ["generation failed", "ERROR"],
+  6: ["generation successful", "SUCCESS"],
+  // 7: "Task Aggregating Into Group", // Not used
 };
-
-function availableContentConstructor(category, link) {
-  // Create an item like: <b>Category:</b> <a href="link">Link</a>
-  const line = document.createElement("div");
-  const bold = document.createElement("b");
-  bold.textContent = `${category}: `;
-  line.appendChild(bold);
-  const anchor = document.createElement("a");
-  anchor.href = link;
-  anchor.textContent = link;
-  line.appendChild(anchor);
-  return line;
-}
-
-function availableVideoConstructor(videos, baseURL) {
-  // Create a bulleted list of video links
-  const holdingList = document.createElement("ul");
-  for (const video of videos) {
-    const listItem = document.createElement("li");
-    listItem.appendChild(
-      availableContentConstructor(video, `${baseURL}/${video}`)
-    );
-    holdingList.appendChild(listItem);
-  }
-  return holdingList;
-}
-
-function addExistingContent(elem, data, entryID) {
-  if (data.notesGenerated) {
-    elem.appendChild(
-      availableContentConstructor("Notes", `${SERVERHOST}/notes/${entryID}`)
-    );
-  }
-  if (data.summaryGenerated) {
-    elem.appendChild(
-      availableContentConstructor("Summary", `${SERVERHOST}/summary/${entryID}`)
-    );
-  }
-  if (data.videosAvailable) {
-    elem.appendChild(
-      availableVideoConstructor(
-        data.videosAvailable,
-        `${SERVERHOST}/videos/${entryID}`
-      )
-    );
-  }
-}
 
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg.action === "setData") {
@@ -73,14 +26,11 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     }
     /* Download Elements */
     const thumbnail = document.getElementById("thumbnail");
-    const title = document.getElementById("video-title");
-    const hd_download = document.getElementById("hd-link");
-    const sd_download = document.getElementById("sd-link");
+    const title = document.getElementById("title");
+    const videoSelections = document.getElementsByClassName("video-item");
 
     thumbnail.src = msg.data.thumbnail;
     title.textContent = msg.data.title;
-    hd_download.href = msg.data.HD.url;
-    sd_download.href = msg.data.SD.url;
 
     payload = {
       entryID: msg.data.entryID,
@@ -90,148 +40,213 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
       backgroundVideo: "",
     };
 
+    /*
+      Service Selection
+    */
+    notesCheckbox = document.getElementById("notes");
+    summaryCheckbox = document.getElementById("summary");
+    notesCheckbox.addEventListener("change", function () {
+      payload.notes = this.checked;
+    });
+    summaryCheckbox.addEventListener("change", function () {
+      payload.summarize = this.checked;
+    });
+
+    function videoClick() {
+      // First make each video item not active
+      Array.from(videoSelections).forEach((video) => {
+        video.classList.remove("selected");
+      });
+      // Update the payload with the selected video
+      // (if it matches the current selection set it to empty and do not activate)
+      if (this.dataset.selection === payload.backgroundVideo) {
+        payload.backgroundVideo = "";
+      } else {
+        payload.backgroundVideo = this.dataset.selection;
+        this.classList.add("selected");
+      }
+    }
+
+    Array.from(videoSelections).forEach((video) => {
+      video.addEventListener("click", videoClick);
+    });
+
     jwt = msg.jwt;
 
     // Request any current, already processed, data from the server.
-    fetch(`${SERVERHOST}/existing`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + msg.jwt,
-      },
-      body: JSON.stringify({ entryID: msg.data.entryID }),
+    fetch(`${SERVERHOST}/existing?entryID=${msg.data.entryID}`, {
+      method: "GET",
     })
-      .then((response) => response.json())
+      .then((response) => {
+        if (response.ok) {
+          response.json();
+        } else {
+          throw new Error("Failed to fetch existing data");
+        }
+      })
       .then((data) => {
-        existingCard = document.getElementById("existing-content");
-        existingCard.classList.remove("hidden");
-        addExistingContent(existingCard, data, msg.data.entryID);
+        const existingContentContainer =
+          document.getElementById("existing-content");
+        const existingContentLink = existingContentContainer.querySelector("a");
+        existingContentLink.href = `https://www.notes.socialcoding.net/${msg.data.entryID}`;
+        existingContentContainer.classList.remove("hidden");
       })
       .catch((error) => {
         // Errors don't matter, just assume there is no data.
         console.error("Error:", error);
       });
 
+    function updateProcess(element, status, message) {
+      const messageSection = element.children[2];
+      messageSection.textContent = message;
+      if (status === "REQUEST") {
+        element.classList.add("requested");
+      } else if (status === "QUEUE") {
+        element.classList.add("queue");
+      } else if (status === "SUCCESS") {
+        element.classList.add("success");
+      } else if (status === "ERROR") {
+        element.classList.add("error");
+      }
+    }
+
+    function handleProcess() {
+      // Disable all form elements, remove event listeners, and show progress container
+      this.disabled = true;
+      Array.from(videoSelections).forEach((video) => {
+        video.removeEventListener("click", videoClick);
+        video.style.cursor = "not-allowed";
+      });
+      notesCheckbox.disabled = true;
+      summaryCheckbox.disabled = true;
+      console.log(payload);
+      const submitProgress = document.getElementById("to-server");
+      const notesProgress = document.getElementById("notes-gen");
+      const summaryProgress = document.getElementById("summary-gen");
+      const videoProgress = document.getElementById("video-gen");
+
+      updateProcess(submitProgress, "REQUEST", "Job sending to server");
+      fetch(`${SERVERHOST}/process`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          updateProcess(submitProgress, "SUCCESS", "Job sent to server!");
+          // Initialize the statuses of the other processes
+          if (payload.notes) {
+            updateProcess(
+              notesProgress,
+              "REQUEST",
+              "Notes generation requested"
+            );
+          }
+          if (payload.summarize) {
+            updateProcess(
+              summaryProgress,
+              "REQUEST",
+              "Summary generation requested"
+            );
+          }
+          if (payload.backgroundVideo !== "") {
+            updateProcess(
+              videoProgress,
+              "REQUEST",
+              "Video generation requested"
+            );
+          }
+          // Poll the server for the status of the processes
+          const interval = setInterval(() => {
+            fetch(`${SERVERHOST}/status`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${jwt}`,
+              },
+              body: JSON.stringify({ entryID: payload.entryID }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (payload.notes && data.notesStatus !== undefined) {
+                  updateProcess(
+                    notesProgress,
+                    statusMapping[data.notesStatus][1],
+                    `Notes ${statusMapping[data.notesStatus][0]}`
+                  );
+                }
+                if (payload.summarize && data.summarizeStatus !== undefined) {
+                  updateProcess(
+                    summaryProgress,
+                    statusMapping[data.summarizeStatus][1],
+                    `Summary ${statusMapping[data.summarizeStatus][0]}`
+                  );
+                }
+                if (
+                  payload.backgroundVideo !== "" &&
+                  data.videoStatus !== undefined
+                ) {
+                  updateProcess(
+                    videoProgress,
+                    statusMapping[data.videoStatus][1],
+                    `Video ${statusMapping[data.videoStatus][0]}`
+                  );
+                }
+                if (
+                  // If all processes are done, failed, or not requested then stop polling
+                  (!payload.notes ||
+                    data.notesStatus === 6 ||
+                    data.notesStatus === 5) &&
+                  (!payload.summarize ||
+                    data.summarizeStatus === 6 ||
+                    data.summarizeStatus === 5) &&
+                  (payload.backgroundVideo === "" ||
+                    data.videoStatus === 6 ||
+                    data.videoStatus === 5)
+                ) {
+                  clearInterval(interval);
+                  console.log("All processes done!");
+                }
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+                updateProcess(
+                  submitProgress,
+                  "ERROR",
+                  "Job failed to respond with status!"
+                );
+                clearInterval(interval);
+              });
+          }, 5000);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          updateProcess(
+            submitProgress,
+            "ERROR",
+            "Job failed to send to server!"
+          );
+        });
+
+      const progressContainer = document.getElementById("progress-container");
+      progressContainer.classList.remove("hidden");
+    }
+
+    const submitButton = document.getElementById("submit");
+    submitButton.addEventListener("click", handleProcess);
     content.classList.remove("hidden");
   }
 });
 
-function formLogic() {
-  // Add event listeners to the form elements to modify the payload
-  notes_button = document.getElementById("notes");
-  summary_button = document.getElementById("summary");
-  video_dropdown = document.getElementById("video");
-
-  notes_button.addEventListener("click", () => {
-    payload.notes = notes_button.checked;
-  });
-  summary_button.addEventListener("click", () => {
-    payload.summarize = summary_button.checked;
-  });
-  video_dropdown.addEventListener("change", () => {
-    payload.backgroundVideo = video_dropdown.value;
-  });
-}
-
-function updateIndividualStatus(statusElement, category, status) {
-  if (status == 0 || status == 5) {
-    statusElement.innerHTML = `<b>${category}: </b> ${statusMapping[status]}`;
-    statusElement.classList.add("error");
-  } else if (status == 6) {
-    statusElement.innerHTML = `<b>${category}: </b> ${statusMapping[status]}`;
-    statusElement.classList.add("success");
-  } else {
-    statusElement.innerHTML = `<b>${category}: </b> ${statusMapping[status]}`;
-    statusElement.classList.remove("error");
-  }
-}
-
-function updateStatus(statusData) {
-  const notesStatus = document.getElementById("notes-status");
-  const summaryStatus = document.getElementById("summary-status");
-  const videoStatus = document.getElementById("video-status");
-
-  updateIndividualStatus(notesStatus, "Notes", statusData.notesStatus);
-  updateIndividualStatus(summaryStatus, "Summary", statusData.summarizeStatus);
-  updateIndividualStatus(videoStatus, "Video", statusData.videoStatus);
-
-  // If all values are 0, 5, or 6 then the job is done. Stop checking.
-  for (const status of Object.values(statusData)) {
-    if (status != 0 && status != 5 && status != 6) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function checkJobStatusPeriodically(intervalID) {
-  // Check the status of the job every second
-  fetch(`${SERVERHOST}/status`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + jwt,
-    },
-    body: JSON.stringify({ entryID: payload.entryID }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      shouldClear = updateStatus(data);
-      if (shouldClear) {
-        clearInterval(intervalID);
-      }
-    })
-    .catch((error) => {
-      clearInterval(intervalID);
-      console.error("Error:", error);
-    });
-}
-
-function formSubmissionLogic() {
-  submitButton = document.getElementById("submit");
-
-  serverStatusCard = document.getElementById("server-status");
-  submitResponse = document.getElementById("job-status");
-
-  /* Business Logic */
-  submitButton.addEventListener("click", () => {
-    submitButton.disabled = true;
-    serverStatusCard.classList.remove("hidden");
-    // Send the payload to the server
-    fetch(`${SERVERHOST}/process`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + jwt,
-      },
-      body: JSON.stringify(payload),
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          if (response.status === 401) {
-            throw new Error("Current login unauthorized please retry!");
-          } else {
-            throw new Error("Server error, please try again later.");
-          }
-        }
-      })
-      .then((data) => {
-        submitResponse.textContent = data.message;
-        submitResponse.classList.add("success");
-        intervalID = setInterval(() => {
-          checkJobStatusPeriodically(intervalID);
-        }, 1000);
-      })
-      .catch((error) => {
-        submitResponse.textContent = error;
-        submitResponse.classList.add("error");
-      });
-  });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  formLogic();
-  formSubmissionLogic();
+  // Wait 1 second to see if the data is loaded
+  setTimeout(() => {
+    if (payload === undefined) {
+      const errorMessage = document.getElementById("no-content-alert");
+      errorMessage.classList.remove("hidden");
+    }
+  }, 1000);
 });

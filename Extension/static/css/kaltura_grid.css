@@ -16,6 +16,11 @@
   cursor: pointer !important;
 }
 
+.download-banner a svg {
+  height: 32px;
+  width: auto;
+}
+
 .download-banner a:hover {
   fill: white !important;
 }

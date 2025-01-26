@@ -7,81 +7,144 @@
   </head>
   <body>
     <div class="layout">
-      <h1 id="logo">UMN Lecture Analyzer</h1>
-      <div id="no-content-alert" class="hidden">
-        <img src="../icons/warning-circle.svg" />
-        <p>
-          No video data was provided to process. Please retry or
-          <a>report the issue</a>.
+      <nav>
+        <a href="https://www.notes.socialcoding.net/" target="_blank"
+          ><img src="../icons/logo_wide.svg" alt="logo" id="logo"
+        /></a>
+        <a href="https://github.com/Kanishk-K/Zircon" target="_blank">
+          <img src="../icons/github.svg" alt="github icon" id="github-icon"
+        /></a>
+      </nav>
+
+      <div
+        id="no-content-alert"
+        class="card hidden"
+        style="
+          max-width: 600px;
+          border-color: #f87171;
+          background-color: #fee2e2;
+        "
+      >
+        <p style="color: #b91c1c; font-family: monospace">
+          <b>No video data found</b>. This may have occured if the page was
+          refreshed, please try again.
         </p>
       </div>
+
       <div id="process-content-container" class="hidden">
-        <div class="process card" id="process-data">
-          <img id="thumbnail" />
-          <h2 id="video-title"></h2>
-          <div
-            class="download-banner"
-            style="display: flex; flex-direction: row; gap: 12px"
-          >
-            <a id="hd-link" href="">
-              <img src="../icons/high-definition.svg" />
-            </a>
-            <a id="sd-link" href="">
-              <img src="../icons/standard-definition.svg" />
-            </a>
-          </div>
-          <form id="process-form">
-            <!-- Have a checkbox for if notes are desired, a checkbox for generating a summary and a dropdown for selecting video -->
-            <div class="form-group">
-              <input type="checkbox" id="notes" name="notes" />
-              <label for="notes">Generate Notes</label>
+        <div id="job">
+          <div class="card">
+            <img id="thumbnail" />
+            <h1 id="title" class="brand-color"></h1>
+            <div class="form-element">
+              <input type="checkbox" id="notes" />
+              <label for="notes">Generate notes</label>
             </div>
-            <div class="form-group">
-              <input type="checkbox" id="summary" name="summary" />
-              <label for="summary">Generate Summary</label>
+            <div class="form-element">
+              <input type="checkbox" id="summary" />
+              <label for="summary">Generate summary</label>
             </div>
-            <div class="form-group">
-              <select id="video" name="video">
-                <option value="">Video Choice</option>
-                <option value="subway">Subway Surfers</option>
-                <option value="minecraft">Minecraft</option>
-                <option value="soap">Soap</option>
-                <option value="slime">Slime</option>
-                <option value="sand">Sand</option>
-                <option value="car">GTA Car</option>
-              </select>
-              <label for="video"
-                >Select Background Video (Generates Summary)</label
-              >
-              <div id="background-options">
-                <img src="../images/subway.png" id="subway" />
-                <img src="../images/minecraft.png" id="minecraft" />
-                <img src="../images/soap.png" id="soap" />
-                <img src="../images/slime.png" id="slime" />
-                <img src="../images/sand.png" id="sand" />
-                <img src="../images/car.png" id="car" />
+            <hr />
+            <h2>Video Selection</h2>
+            <div id="video-container">
+              <div class="video-item" data-selection="subway">
+                <img src="../images/subway.png" />
+                <p>Subway Surfers</p>
               </div>
-              <button id="submit" type="button">Submit Task</button>
+              <div class="video-item" data-selection="minecraft">
+                <img src="../images/minecraft.png" />
+                <p>Minecraft</p>
+              </div>
             </div>
-          </form>
-        </div>
-        <div class="process" id="server-response">
-          <div class="card hidden" id="existing-content">
-            <h2>Already Existing Content</h2>
+            <hr />
+            <button id="submit">
+              Process
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                fill="#000000"
+                viewBox="0 0 256 256"
+              >
+                <path
+                  d="M178.34,165.66,160,147.31V208a8,8,0,0,1-16,0V147.31l-18.34,18.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0l32,32a8,8,0,0,1-11.32,11.32ZM160,40A88.08,88.08,0,0,0,81.29,88.68,64,64,0,1,0,72,216h40a8,8,0,0,0,0-16H72a48,48,0,0,1,0-96c1.1,0,2.2,0,3.29.12A88,88,0,0,0,72,128a8,8,0,0,0,16,0,72,72,0,1,1,100.8,66,8,8,0,0,0,3.2,15.34,7.9,7.9,0,0,0,3.2-.68A88,88,0,0,0,160,40Z"
+                ></path>
+              </svg>
+            </button>
           </div>
-          <div class="card hidden" id="server-status">
-            <h2>Current Processing Status</h2>
-            <div class="task-item" id="job-status">
-              Submitting job to server...
+        </div>
+        <div id="progress">
+          <div class="card hidden" id="existing-content">
+            <h2>Existing Content Available!</h2>
+            <a
+              class="brand-color"
+              href="#"
+              id="existing-content"
+              target="_blank"
+            >
+              View Existing Content
+            </a>
+          </div>
+          <div class="card hidden" id="progress-container">
+            <div class="progress-element" id="to-server">
+              <span class="status-circle"></span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                fill="#000000"
+                viewBox="0 0 256 256"
+              >
+                <path
+                  d="M178.34,165.66,160,147.31V208a8,8,0,0,1-16,0V147.31l-18.34,18.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0l32,32a8,8,0,0,1-11.32,11.32ZM160,40A88.08,88.08,0,0,0,81.29,88.68,64,64,0,1,0,72,216h40a8,8,0,0,0,0-16H72a48,48,0,0,1,0-96c1.1,0,2.2,0,3.29.12A88,88,0,0,0,72,128a8,8,0,0,0,16,0,72,72,0,1,1,100.8,66,8,8,0,0,0,3.2,15.34,7.9,7.9,0,0,0,3.2-.68A88,88,0,0,0,160,40Z"
+                ></path>
+              </svg>
+              <p>Job sending to server</p>
             </div>
-            <div class="task-item" id="notes-status">
-              Awaiting notes generation status...
+            <div class="progress-element" id="notes-gen">
+              <span class="status-circle"></span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                fill="#000000"
+                viewBox="0 0 256 256"
+              >
+                <path
+                  d="M88,96a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H96A8,8,0,0,1,88,96Zm8,40h64a8,8,0,0,0,0-16H96a8,8,0,0,0,0,16Zm32,16H96a8,8,0,0,0,0,16h32a8,8,0,0,0,0-16ZM224,48V156.69A15.86,15.86,0,0,1,219.31,168L168,219.31A15.86,15.86,0,0,1,156.69,224H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32H208A16,16,0,0,1,224,48ZM48,208H152V160a8,8,0,0,1,8-8h48V48H48Zm120-40v28.7L196.69,168Z"
+                ></path>
+              </svg>
+              <p>Notes generation was not requested</p>
             </div>
-            <div class="task-item" id="summary-status">
-              Awaiting summary generation status...
+            <div class="progress-element" id="summary-gen">
+              <span class="status-circle"></span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                fill="#000000"
+                viewBox="0 0 256 256"
+              >
+                <path
+                  d="M248,92.68a15.86,15.86,0,0,0-4.69-11.31L174.63,12.68a16,16,0,0,0-22.63,0L123.57,41.11l-58,21.77A16.06,16.06,0,0,0,55.35,75.23L32.11,214.68A8,8,0,0,0,40,224a8.4,8.4,0,0,0,1.32-.11l139.44-23.24a16,16,0,0,0,12.35-10.17l21.77-58L243.31,104A15.87,15.87,0,0,0,248,92.68Zm-69.87,92.19L63.32,204l47.37-47.37a28,28,0,1,0-11.32-11.32L52,192.7,71.13,77.86,126,57.29,198.7,130ZM112,132a12,12,0,1,1,12,12A12,12,0,0,1,112,132Zm96-15.32L139.31,48l24-24L232,92.68Z"
+                ></path>
+              </svg>
+              <p>Summary generation was not requested</p>
             </div>
-            <div class="task-item" id="video-status">
-              Awaiting video generation status...
+            <div class="progress-element" id="video-gen">
+              <span class="status-circle"></span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                fill="#000000"
+                viewBox="0 0 256 256"
+              >
+                <path
+                  d="M251.77,73a8,8,0,0,0-8.21.39L208,97.05V72a16,16,0,0,0-16-16H32A16,16,0,0,0,16,72V184a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V159l35.56,23.71A8,8,0,0,0,248,184a8,8,0,0,0,8-8V80A8,8,0,0,0,251.77,73ZM192,184H32V72H192V184Zm48-22.95-32-21.33V116.28L240,95Z"
+                ></path>
+              </svg>
+              <p>Video generation was not requested</p>
             </div>
           </div>
         </div>

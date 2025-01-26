@@ -1,21 +1,31 @@
 <html>
   <head>
-    <title>UMN Lecture Downloader Setup</title>
+    <title>Zircon</title>
     <link rel="stylesheet" href="static/fonts/fonts.css" />
     <link rel="stylesheet" href="global.css" />
     <link rel="stylesheet" type="text/css" href="popup.css" />
   </head>
   <body>
     <div class="layout">
-      <h1>UMN Lecture Downloader</h1>
+      <nav>
+        <a href="https://www.notes.socialcoding.net/" target="_blank"
+          ><img src="./static/icons/logo_wide.svg" alt="logo" id="logo"
+        /></a>
+        <a href="https://github.com/Kanishk-K/Zircon" target="_blank">
+          <img
+            src="./static/icons/github.svg"
+            alt="github icon"
+            id="github-icon"
+        /></a>
+      </nav>
       <div id="login-content" class="hidden">
-        <p class="subtitle">Sign in to start downloading lectures.</p>
+        <h1>Log In</h1>
+        <p>Sign in to start analyzing lectures.</p>
         <div class="card">
-          <h2>Features</h2>
-          <ul class="settings">
-            <li>Allows summarization of lectures</li>
-            <li>Allows the creation of lecture summary videos</li>
-            <li>Enables notetaking for lectures</li>
+          <ul>
+            <li>Extract notes</li>
+            <li>Create summaries</li>
+            <li>Generate content</li>
           </ul>
         </div>
         <div id="oauth">
@@ -23,7 +33,7 @@
             id="login"
             class="gsi-material-button"
             style="width: 100px"
-            href="http://analysis.socialcoding.net/login"
+            href="http://localhost:8080/login"
             target="_blank"
           >
             <div class="gsi-material-button-state"></div>
@@ -60,26 +70,25 @@
               <span style="display: none">Continue with Google</span>
             </div>
           </a>
-          <!--        <button class="btn primary" id="add">Add to Google Calendar</button>-->
         </div>
       </div>
       <div id="logged-in-content" class="hidden">
-        <p class="subtitle">Welcome back <b id="email">userx500@umn.edu</b>.</p>
+        <p>
+          Welcome back
+          <span id="email" class="brand-color">userx500@umn.edu</span>.
+        </p>
         <div class="card">
-          <h2>Current Quota</h2>
-          <ul class="settings">
-            <li><b>Transcriptions</b>: 0/5 Utilized</li>
-            <li><b>Notes</b>: 0/2 Utilized</li>
+          <ul>
+            <li><b>Downloads</b>: Unlimited</li>
+            <li><b>Analysis</b>: 5 Remaining</li>
           </ul>
         </div>
+        <h2>Previous Analysis</h2>
+        <div id="prev_analysis"></div>
       </div>
-      <div id="footer">
-        <p>
-          Star us on
-          <a href="" target="_blank">Github</a>!
-        </p>
-        <p class="light" style="font-size: 12px">v1.0.0</p>
-      </div>
+      <footer>
+        <p id="version">v1.0.0</p>
+      </footer>
     </div>
   </body>
   <script src="popup.js"></script>

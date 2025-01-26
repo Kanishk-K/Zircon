@@ -190,10 +190,10 @@ func (js *JobSchedulerService) CheckStatus(jobStatusInfo *models.JobStatusReques
 		response.SummarizeStatus = summaryJob.State
 	}
 
-	videoJob, err := js.asynqInspector.GetTaskInfo("default", fmt.Sprintf("video:%s", jobStatusInfo.EntryID))
+	videoJob, err := js.asynqInspector.GetTaskInfo("low", fmt.Sprintf("video:%s", jobStatusInfo.EntryID))
 	switch {
 	case errors.Is(err, asynq.ErrQueueNotFound):
-		return nil, fmt.Errorf("queue %s not found", "default")
+		return nil, fmt.Errorf("queue %s not found", "low")
 	case errors.Is(err, asynq.ErrTaskNotFound):
 		response.VideoStatus = 0
 	default:

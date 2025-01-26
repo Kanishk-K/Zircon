@@ -97,15 +97,9 @@ func (jsr *JobSchedulerRouter) StatusCheck(w http.ResponseWriter, r *http.Reques
 }
 
 func (jsr *JobSchedulerRouter) HandleExistingJob(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		_, err := jsr.jwtClient.SecureRoute(w, r)
-		if err != nil {
-			return
-		}
-		requestBody := models.JobStatusRequest{}
-		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
-			return
+	if r.Method == http.MethodGet {
+		requestBody := models.JobStatusRequest{
+			EntryID: r.URL.Query().Get("entryID"),
 		}
 		response, err := jsr.service.JobProcessedContent(&requestBody)
 		if err != nil {
@@ -118,7 +112,7 @@ func (jsr *JobSchedulerRouter) HandleExistingJob(w http.ResponseWriter, r *http.
 			return
 		}
 	} else {
-		http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
+		http.Error(w, "Only GET method is supported", http.StatusMethodNotAllowed)
 	}
 }
 
