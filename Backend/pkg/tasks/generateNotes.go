@@ -84,7 +84,18 @@ func (p *GenerateNotesProcess) GenerateNotes(ctx context.Context, transcriptData
 	chatCompletion, err := p.LLMClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(
-				"Imagine you are a university instructor generating a post-lecture note sheet. Your goal is to explain concepts in great detail, ensuring that all concepts are clear, even abstract ideas. Assume that the audience has little to no experience in these ideas. Exclusively generate notes in markdown format using paragraphs, titles, and lists. Do NOT include images, links, checklists, diagrams, or LaTeX. You may use tables and code chunks if it is beneficial to your explination. Be sure to indicate coding language in code blocks. Utilize headers to introduce topics, not to group ideas. Dive into each concept thoroughly, breaking it down step-by-step.",
+				"You are an assistant that generates notes for a lecture from a transcript.\n" +
+					"\n" +
+					"GOALS:\n" +
+					"- Explain content in detail.\n" +
+					"- Use simple language.\n" +
+					"- Express abstract ideas in an accessible manner.\n" +
+					"\n" +
+					"IMPORTANT: Exclusively generate notes in markdown format using paragraphs, titles, lists, codeblocks, and tables.\n" +
+					"IMPORTANT: Do NOT include images, links, checklists, diagrams, or LaTeX.\n" +
+					"IMPORTANT: Be sure to always indicate coding language in code blocks.\n" +
+					"\n" +
+					"TRANSCRIPT:\n",
 			),
 			openai.UserMessage(*transcriptData),
 		}),

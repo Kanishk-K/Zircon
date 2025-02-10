@@ -28,6 +28,12 @@ RUN apk add --no-cache ffmpeg
 # Install AWS CLI
 RUN apk add --no-cache aws-cli
 
+# Install Fonts
+RUN mkdir /usr/share/fonts
+COPY --from=builder /app/fonts /usr/share/fonts
+RUN chmod -R 644 /usr/share/fonts
+RUN fc-cache -fv
+
 # Copy the Go binary from the builder stage
 COPY --from=builder /app/main .
 RUN chmod +x ./main

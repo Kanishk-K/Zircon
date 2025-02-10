@@ -53,7 +53,7 @@ type subtitleLine struct {
 
 const CHARSPERLINE = 27
 const TEMPOSPEED = 1.25 // 1.25x speed should match atempo=1.25 in ffmpeg
-const HIGHLIGHT_COLOR = "\\1c&HF755A8&"
+const HIGHLIGHT_COLOR = "\\1c&H639fc5&"
 
 /* Producer Call */
 
@@ -129,8 +129,14 @@ func (p *GenerateVideoProcess) HandleGenerateVideoTask(ctx context.Context, t *a
 		return err
 	}
 	backgroundVideo := filepath.Join(dir, "static", fmt.Sprintf("%s.mp4", data.BackgroundVideo))
-	cmd := exec.Command("ffmpeg", "-y", "-i", backgroundVideo, "-i", filepath.Base(mp3Fp.Name()), "-vf", fmt.Sprintf("subtitles='%s'", filepath.Base(subtitlesFp.Name())), "-filter:a", fmt.Sprintf("atempo=%.2f", TEMPOSPEED), "-c:v", "libx264", "-c:a", "aac", "-crf", "30", "-shortest", "output.mp4")
+	logoPng := filepath.Join(dir, "static", "logo.png")
+	cmd := exec.Command("ffmpeg", "-y", "-i", backgroundVideo, "-i", filepath.Base(mp3Fp.Name()), "-i", logoPng, "-filter_complex", fmt.Sprintf("ass='%s'[subs];[1:a]atempo=%.2f;[2]format=rgba,colorchannelmixer=aa=0.3[logo];[logo][0]scale=w=oh*dar:h=rh/12[logo_scaled];[subs][logo_scaled]overlay=x=W-w-10:y=10[output];", filepath.Base(subtitlesFp.Name()), TEMPOSPEED), "-map", "[output]", "-c:v", "libx264", "-c:a", "aac", "-crf", "30", "-shortest", "output.mp4")
 	cmd.Dir = workingDir
+
+	// Put cmd errors into stdout
+	// cmd.Stderr = os.Stderr
+	// cmd.Stdout = os.Stdout
+
 	log.Printf("Generating video for %s", data.EntryID)
 	err = cmd.Run()
 	if err != nil {

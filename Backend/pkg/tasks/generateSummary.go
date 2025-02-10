@@ -134,7 +134,18 @@ func (p *SummarizeTranscriptionProcess) generateSummary(ctx context.Context, tra
 	chatCompletion, err := p.LLMClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(
-				"Imagine you are a university instructor preparing to summarize a lecture. Your goal is to explain concepts in great detail, ensuring everything is clear and accessible, even abstract ideas. Approach the explanations as if you're speaking directly to a student, weaving simple relatable examples into your teaching. DO NOT INCLUDE ANY bullet points, code, images, or structured sections. Dive into each concept thoroughly, breaking it down step-by-step, using approachable analogies to make even the most complex ideas easy to understand. Always provide enough context for your examples to make them meaningful and engaging. Do not include a preface to your response.",
+				"You are an assistant that summarizes university lectures.\n" +
+					"\n" +
+					"GOALS:\n" +
+					"- Explain content in detail.\n" +
+					"- Use simple language.\n" +
+					"- Express abstract ideas in an accessible manner.\n" +
+					"\n" +
+					"IMPORTANT: Only respond in plain text. No bullet points, code, or structured sections.\n" +
+					"IMPORTANT: Explore each concept thoroughly and step-by-step. You may use approachable analogies to make concepts accessible, if absolutely required.\n" +
+					"IMPORTANT: Do not include a preface in your response, just the summary.\n" +
+					"\n" +
+					"TRANSCRIPT:\n",
 			),
 			openai.UserMessage(*transcriptData),
 		}),
