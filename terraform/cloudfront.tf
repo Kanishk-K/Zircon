@@ -3,8 +3,8 @@
 # -> CloudFront Distribution
 
 locals {
-  s3_origin_id  = "lecture-analyzer-s3-origin"
-  alb_origin_id = "lecture-analyzer-alb-origin"
+  s3_origin_id    = "zircon-s3-origin"
+  apigw_origin_id = "zircon-apigw-origin"
 }
 
 # CREATE a CloudFront Origin Access Control
@@ -19,8 +19,9 @@ resource "aws_cloudfront_origin_access_control" "s3_access_control" {
 # CREATE a CloudFront distribution
 resource "aws_cloudfront_distribution" "web_routing" {
   origin {
-    domain_name = aws_lb.producer-alb.dns_name
-    origin_id   = local.alb_origin_id
+    domain_name = replace(aws_apigatewayv2_stage.zircon-stage.invoke_url, "/^https?://([^/]*).*/", "$1")
+    origin_id   = local.apigw_origin_id
+    origin_path = "/${aws_apigatewayv2_stage.zircon-stage.name}"
     custom_origin_config {
       http_port              = 80
       https_port             = 443
@@ -36,12 +37,12 @@ resource "aws_cloudfront_distribution" "web_routing" {
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = local.alb_origin_id
+    target_origin_id       = local.apigw_origin_id
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
     forwarded_values {
       query_string = true # Needed for oauth
-      headers      = ["*"]
+      headers      = []
       cookies {
         forward = "none"
       }

@@ -17,7 +17,7 @@
 resource "aws_vpc" "vpc" {
   cidr_block = "10.0.0.0/16"
   tags = {
-    Name        = "lecture-analyzer"
+    Name        = "zircon-vpc"
     Environment = "prod"
   }
 }
@@ -26,21 +26,21 @@ resource "aws_vpc" "vpc" {
 variable "public_subnet_cidr_blocks" {
   type        = list(string)
   description = "These are the CIDR blocks that will be used to generate public subnets"
-  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+  default     = ["10.0.1.0/24"]
 }
 
 # DEFINES private subnets for the application each with around 256 IP addresses
 variable "private_subnet_cidr_blocks" {
   type        = list(string)
   description = "These are the CIDR blocks that will be used to generate private subnets"
-  default     = ["10.0.3.0/24"]
+  default     = ["10.0.2.0/24"]
 }
 
 # DEFINES availability zones for the application will use. Ensure the length of this list is equal to the number of subnets.
 variable "azs" {
   type        = list(string)
   description = "These are the availability zones that will be used to generate subnets"
-  default     = ["us-east-1a", "us-east-1b"]
+  default     = ["us-east-1a"]
 }
 
 # CREATES public subnets for the application
@@ -52,7 +52,7 @@ resource "aws_subnet" "public-subnets" {
   map_public_ip_on_launch = true
 
   tags = {
-    "Name" = "lecture-analyzer-public-subnet-${count.index}"
+    "Name" = "zircon-public-subnet-${count.index}"
   }
 }
 
@@ -65,7 +65,7 @@ resource "aws_subnet" "private-subnets" {
   map_public_ip_on_launch = false
 
   tags = {
-    "Name" = "lecture-analyzer-private-subnet-${count.index}"
+    "Name" = "zircon-private-subnet-${count.index}"
   }
 }
 
@@ -74,7 +74,7 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name        = "lecture-analyzer-igw"
+    Name        = "zircon-igw"
     Environment = "prod"
   }
 }
@@ -83,7 +83,7 @@ resource "aws_internet_gateway" "igw" {
 resource "aws_eip" "eip" {
   domain = "vpc"
   tags = {
-    Name        = "lecture-analyzer-eip"
+    Name        = "zircon-eip"
     Environment = "prod"
   }
 }
@@ -95,7 +95,7 @@ resource "aws_nat_gateway" "nat-gateway" {
   depends_on    = [aws_internet_gateway.igw]
 
   tags = {
-    Name        = "lecture-analyzer-nat-gateway"
+    Name        = "zircon-nat-gateway"
     Environment = "prod"
   }
 }
@@ -106,7 +106,7 @@ resource "aws_vpc_endpoint" "s3-endpoint" {
   service_name    = "com.amazonaws.us-east-1.s3"
   route_table_ids = [aws_route_table.rt-public.id, aws_route_table.rt-private.id]
   tags = {
-    Name        = "lecture-analyzer-s3-endpoint"
+    Name        = "zircon-s3-endpoint"
     Environment = "prod"
   }
 }
@@ -117,7 +117,7 @@ resource "aws_vpc_endpoint" "dynamodb-endpoint" {
   service_name    = "com.amazonaws.us-east-1.dynamodb"
   route_table_ids = [aws_route_table.rt-public.id, aws_route_table.rt-private.id]
   tags = {
-    Name        = "lecture-analyzer-dynamodb-endpoint"
+    Name        = "zircon-dynamodb-endpoint"
     Environment = "prod"
   }
 }
@@ -126,7 +126,7 @@ resource "aws_vpc_endpoint" "dynamodb-endpoint" {
 resource "aws_route_table" "rt-public" {
   vpc_id = aws_vpc.vpc.id
   tags = {
-    Name        = "lecture-analyzer-rt-public"
+    Name        = "zircon-rt-public"
     Environment = "prod"
   }
 }
@@ -149,7 +149,7 @@ resource "aws_route_table_association" "rt-public-assoc" {
 resource "aws_route_table" "rt-private" {
   vpc_id = aws_vpc.vpc.id
   tags = {
-    Name        = "lecture-analyzer-rt-private"
+    Name        = "zircon-rt-private"
     Environment = "prod"
   }
 }
@@ -171,7 +171,7 @@ resource "aws_route_table_association" "rt-private-assoc" {
 # CREATES a security group for the nodes to pull from the ECR repository and communicate with the ECS cluster
 # https://repost.aws/questions/QUk9Za0ev-Rzeas-FoTHbymQ/security-group-outbound-rules-with-elastic-container-service
 resource "aws_security_group" "ecs-node-sg" {
-  name   = "lecture-analyzer-ecs-node-sg"
+  name   = "zircon-ecs-node-sg"
   vpc_id = aws_vpc.vpc.id
 
   # Allow traffic to the ECS cluster
@@ -199,127 +199,5 @@ resource "aws_security_group" "ecs-node-sg" {
     to_port     = 51680
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# CREATES a security group for the ALB to allow traffic from the internet
-resource "aws_security_group" "alb-sg" {
-  name   = "lecture-analyzer-alb-sg"
-  vpc_id = aws_vpc.vpc.id
-
-  ingress {
-    # HTTP
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    # HTTPS
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# CREATES a security group for the producer service to communicate with resources.
-resource "aws_security_group" "producer-sg" {
-  name   = "lecture-analyzer-producer-sg"
-  vpc_id = aws_vpc.vpc.id
-
-  ingress {
-    # OAuth, this is fine as we have no listeners for this port.
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    # ALB, only allow port 80 traffic from the ALB as we do have a listener for this port.
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb-sg.id]
-  }
-}
-
-# APPENDS an ingress rule to the producer security group to allow traffic from the ElastiCache security group
-resource "aws_security_group_rule" "producer-redis-ingress" {
-  type                     = "ingress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.producer-sg.id
-  source_security_group_id = aws_security_group.elasticache-sg.id
-}
-
-# APPENDS an egress rule to the producer security group to allow traffic to the ElastiCache security group
-resource "aws_security_group_rule" "producer-redis-egress" {
-  type                     = "egress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.producer-sg.id
-  source_security_group_id = aws_security_group.elasticache-sg.id
-}
-
-# CREATES a security group to allow the consumer service to communicate with resources
-resource "aws_security_group" "consumer-sg" {
-  name   = "lecture-analyzer-consumer-sg"
-  vpc_id = aws_vpc.vpc.id
-
-  ingress {
-    # OpenAI, Polly, etc routed through NAT Gateway
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# APPENDS an ingress rule to the consumer security group to allow traffic from the ElastiCache security group
-resource "aws_security_group_rule" "consumer-redis-ingress" {
-  type                     = "ingress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.consumer-sg.id
-  source_security_group_id = aws_security_group.elasticache-sg.id
-}
-
-# APPENDS an egress rule to the consumer security group to allow traffic to the ElastiCache security group
-resource "aws_security_group_rule" "consumer-redis-egress" {
-  type                     = "egress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.consumer-sg.id
-  source_security_group_id = aws_security_group.elasticache-sg.id
-}
-
-# CREATES a security group for the ElastiCache cluster to allow traffic from the producer and consumer services
-resource "aws_security_group" "elasticache-sg" {
-  name        = "lecture-analyzer-elasticache-sg"
-  description = "Security group for the ElastiCache cluster"
-  vpc_id      = aws_vpc.vpc.id
-
-  ingress {
-    from_port       = 6379
-    to_port         = 6379
-    protocol        = "tcp"
-    security_groups = [aws_security_group.producer-sg.id, aws_security_group.consumer-sg.id]
-  }
-  egress {
-    from_port       = 6379
-    to_port         = 6379
-    protocol        = "tcp"
-    security_groups = [aws_security_group.producer-sg.id, aws_security_group.consumer-sg.id]
   }
 }
