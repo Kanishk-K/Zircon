@@ -2,6 +2,15 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: This is the Auth Service SAM Local Testing Template
+
+Parameters:
+  GOOGLE_CLIENT_ID:
+    Type: String
+    Description: Google Client ID
+  GOOGLE_CLIENT_SECRET:
+    Type: String
+    Description: Google Client Secret
+
 Resources:
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -19,3 +28,7 @@ Resources:
           Properties:
             Path: /auth
             Method: GET
+      Environment:
+        Variables:
+          GOOGLE_CLIENT_ID: !Ref GOOGLE_CLIENT_ID
+          GOOGLE_CLIENT_SECRET: !Ref GOOGLE_CLIENT_SECRET
