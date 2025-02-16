@@ -1,4 +1,4 @@
-package models
+package authutil
 
 type ProfileData struct {
 	Name               string `json:"name"`

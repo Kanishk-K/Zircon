@@ -7,12 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/auth-service/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthClientMethods interface {
-	SignJWT(user *models.ProfileData) (*JWTDetails, error)
+	SignJWT(user *ProfileData) (*JWTDetails, error)
 	VerifyJWT(token string) (jwt.MapClaims, error)
 	SecureRoute(w http.ResponseWriter, r *http.Request) (jwt.MapClaims, error)
 }
@@ -33,7 +32,7 @@ type JWTDetails struct {
 	Expiry      int64  `json:"expiry"`
 }
 
-func (ac *AuthClient) SignJWT(user *models.ProfileData) (*JWTDetails, error) {
+func (ac *AuthClient) SignJWT(user *ProfileData) (*JWTDetails, error) {
 	expiryTime := time.Now().Add(time.Hour * 24 * 30).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": strings.TrimSuffix(user.Email, "@umn.edu"),

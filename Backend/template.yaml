@@ -10,6 +10,9 @@ Parameters:
   GOOGLE_CLIENT_SECRET:
     Type: String
     Description: Google Client Secret
+  JWT_PRIVATE:
+    Type: String
+    Description: JWT Secret
 
 Resources:
   AuthFunction:
@@ -17,7 +20,7 @@ Resources:
     Metadata:
       BuildMethod: go1.x
     Properties:
-      CodeUri: cmd/Auth/
+      CodeUri: cmd/Login/
       Handler: bootstrap
       Runtime: provided.al2023
       Architectures:
@@ -26,9 +29,31 @@ Resources:
         CatchAll:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /auth
+            Path: /login
             Method: GET
       Environment:
         Variables:
           GOOGLE_CLIENT_ID: !Ref GOOGLE_CLIENT_ID
           GOOGLE_CLIENT_SECRET: !Ref GOOGLE_CLIENT_SECRET
+
+  CallbackFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Callback/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Events:
+        CatchAll:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /callback
+            Method: GET
+      Environment:
+        Variables:
+          GOOGLE_CLIENT_ID: !Ref GOOGLE_CLIENT_ID
+          GOOGLE_CLIENT_SECRET: !Ref GOOGLE_CLIENT_SECRET
+          JWT_PRIVATE: !Ref JWT_PRIVATE
