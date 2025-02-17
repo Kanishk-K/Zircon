@@ -3,17 +3,17 @@ package authutil
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthClientMethods interface {
 	SignJWT(user *ProfileData) (*JWTDetails, error)
 	VerifyJWT(token string) (jwt.MapClaims, error)
-	SecureRoute(w http.ResponseWriter, r *http.Request) (jwt.MapClaims, error)
+	SecureRoute(request events.APIGatewayProxyRequest) (jwt.MapClaims, error)
 }
 
 type AuthClient struct {
@@ -64,20 +64,18 @@ func (ac *AuthClient) VerifyJWT(tokenString string) (jwt.MapClaims, error) {
 	}
 }
 
-func (ac *AuthClient) SecureRoute(w http.ResponseWriter, r *http.Request) (jwt.MapClaims, error) {
-	tokenString := r.Header.Get("Authorization")
+func (ac *AuthClient) SecureRoute(request events.APIGatewayProxyRequest) (jwt.MapClaims, error) {
+	tokenString := request.Headers["Authorization"]
 	if tokenString == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, "Missing authorization header (JWT)")
+		log.Printf("Missing authorization header (JWT)")
 		return nil, fmt.Errorf("missing authorization header (JWT)")
 	}
 	// Ensure to add Bearer to the token for good practice
 	tokenString = tokenString[len("Bearer "):]
-
+	log.Printf("Token: %s", tokenString)
 	claims, err := ac.VerifyJWT(tokenString)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, "Invalid Token Provided")
+		log.Printf("Invalid Token Provided")
 		return nil, fmt.Errorf("invalid token provided")
 	}
 
