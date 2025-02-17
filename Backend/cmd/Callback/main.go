@@ -3,14 +3,20 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/api-response"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/authutil"
+	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -18,6 +24,7 @@ import (
 type CallbackService struct {
 	googleOauthConfig *oauth2.Config
 	authClient        authutil.AuthClientMethods
+	dynamoClient      dynamo.DynamoMethods
 }
 
 func (cs *CallbackService) GetUserDataFromGoogle(codeValue string) (*authutil.ProfileData, error) {
@@ -79,9 +86,23 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 
 	JWTClient := authutil.NewAuthClient([]byte(os.Getenv("JWT_PRIVATE")))
 
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			Region: aws.String(region),
+		},
+	}))
+	dynamoClient := dynamo.NewDynamoClient(awsSession)
+
 	cbs := CallbackService{
 		googleOauthConfig: GoogleOauthConfig,
 		authClient:        JWTClient,
+		dynamoClient:      dynamoClient,
 	}
 
 	profile, err := cbs.GetUserDataFromGoogle(request.QueryStringParameters["code"])
@@ -92,6 +113,14 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	if profile.OrganizationDomain != "umn.edu" {
 		apiresponse.APIErrorResponse(401, "You're not registered with a valid \"umn.edu\" email.", &resp)
 		return resp, nil
+	}
+	err = cbs.dynamoClient.CreateUserIfNotExists(strings.TrimSuffix(profile.Email, fmt.Sprintf("@%s", profile.OrganizationDomain)), profile.Name)
+	if err != nil {
+		var ccfe *dynamodb.ConditionalCheckFailedException
+		if !errors.As(err, &ccfe) {
+			apiresponse.APIErrorResponse(500, "Failed to communicate with database.", &resp)
+			return resp, err
+		}
 	}
 	tokenDetails, err := cbs.authClient.SignJWT(profile)
 	if err != nil {
