@@ -151,7 +151,6 @@ func (p *SummarizeTranscriptionProcess) generateSummary(ctx context.Context, tra
 		}),
 		Model: openai.F(openai.ChatModelGPT4oMini),
 	})
-
 	if err != nil {
 		log.Printf("Failed to generate summary: %v", err)
 		return "", err

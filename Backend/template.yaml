@@ -13,6 +13,9 @@ Parameters:
   JWT_PRIVATE:
     Type: String
     Description: JWT Secret
+  OPENAI_API_KEY:
+    Type: String
+    Description: OpenAI API Key
 
 Resources:
   HttpApi:
@@ -103,6 +106,7 @@ Resources:
       Runtime: provided.al2023
       Architectures:
         - x86_64
+      Timeout: 29
       Events:
         CatchAll:
           Type: HttpApi # More info about API Event Source:
@@ -110,3 +114,6 @@ Resources:
             Path: /submitJob
             Method: POST
             ApiId: !Ref HttpApi
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OPENAI_API_KEY
