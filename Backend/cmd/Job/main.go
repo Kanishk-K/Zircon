@@ -14,6 +14,7 @@ import (
 
 	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/api-response"
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
+	lambdaclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/lambdaClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -29,6 +30,7 @@ const BUCKET = "lecture-processor"
 type JobSchedulerService struct {
 	dynamoClient dynamo.DynamoMethods
 	s3Client     s3client.S3Methods
+	lambdaClient lambdaclient.LambdaMethods
 	LLMClient    *openai.Client
 }
 
@@ -183,13 +185,15 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		},
 	}))
 	dynamoClient := dynamo.NewDynamoClient(awsSession)
-	s3client := s3client.NewS3Client(awsSession)
+	s3Client := s3client.NewS3Client(awsSession)
+	lambdaClient := lambdaclient.NewLambdaClient(awsSession)
 
 	LLMClient := openai.NewClient()
 
 	jss := JobSchedulerService{
 		dynamoClient: dynamoClient,
-		s3Client:     s3client,
+		s3Client:     s3Client,
+		lambdaClient: lambdaClient,
 		LLMClient:    LLMClient,
 	}
 	/*
@@ -202,6 +206,12 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		var ccfe *dynamodb.ConditionalCheckFailedException
 		if errors.As(err, &ccfe) {
 			// Job already exists
+			executionErr := jss.lambdaClient.InvokeAsyncLambda(os.Getenv("SUBTITLE_API"))
+			if executionErr != nil {
+				apiresponse.APIErrorResponse(500, "Failed to execute lambda", &resp)
+				log.Println("Failed to execute lambda: ", executionErr)
+				return resp, nil
+			}
 			apiresponse.APIErrorResponse(200, "Job already exists", &resp)
 			return resp, nil
 		} else {
@@ -240,6 +250,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	}
 
 	apiresponse.APIErrorResponse(200, "Job scheduled successfully", &resp)
+
 	return resp, nil
 }
 
