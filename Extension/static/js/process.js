@@ -1,4 +1,4 @@
-const SERVERHOST = "http://localhost:8080";
+const SERVERHOST = "http://localhost:3000";
 let payload = undefined;
 let jwt = undefined;
 const statusMapping = {
@@ -35,8 +35,6 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     payload = {
       entryID: msg.data.entryID,
       transcript: msg.data.transcript,
-      notes: false,
-      summarize: false,
       backgroundVideo: "",
     };
 
@@ -126,7 +124,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
       const videoProgress = document.getElementById("video-gen");
 
       updateProcess(submitProgress, "REQUEST", "Job sending to server");
-      fetch(`${SERVERHOST}/process`, {
+      fetch(`${SERVERHOST}/submitJob`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

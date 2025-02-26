@@ -10,6 +10,7 @@ import (
 
 type S3Methods interface {
 	UploadFile(bucket string, key string, file io.ReadSeeker, filetype string) error
+	ReadFile(bucket string, key string) (io.ReadCloser, error)
 }
 
 type S3Client struct {
@@ -33,4 +34,15 @@ func (sc *S3Client) UploadFile(bucket string, key string, file io.ReadSeeker, fi
 		return err
 	}
 	return nil
+}
+
+func (sc *S3Client) ReadFile(bucket string, key string) (io.ReadCloser, error) {
+	resp, err := sc.client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
 }

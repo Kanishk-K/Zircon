@@ -9,7 +9,7 @@ import (
 )
 
 type LambdaMethods interface {
-	InvokeAsyncLambda(functionARN string) error
+	InvokeAsyncLambda(functionARN string, payload []byte) error
 }
 
 type LambdaClient struct {
@@ -31,11 +31,12 @@ func NewLambdaClient(session *session.Session) LambdaMethods {
 	}
 }
 
-func (lc *LambdaClient) InvokeAsyncLambda(functionARN string) error {
+func (lc *LambdaClient) InvokeAsyncLambda(functionARN string, payload []byte) error {
 	if os.Getenv("AWS_SAM_LOCAL") == "true" {
 		_, err := lc.client.Invoke(&lambda.InvokeInput{
 			FunctionName:   aws.String(functionARN),
 			InvocationType: aws.String("RequestResponse"), // Event InvocationType is not supported for SAM local
+			Payload:        payload,
 		})
 		if err != nil {
 			return err
@@ -45,6 +46,7 @@ func (lc *LambdaClient) InvokeAsyncLambda(functionARN string) error {
 		_, err := lc.client.Invoke(&lambda.InvokeInput{
 			FunctionName:   aws.String(functionARN),
 			InvocationType: aws.String("Event"),
+			Payload:        payload,
 		})
 		if err != nil {
 			return err

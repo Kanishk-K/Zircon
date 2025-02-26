@@ -19,16 +19,13 @@ $(BIN_DIR)/%: $(CMD_DIR)/%/main.go
 clean:
 	rm -rf $(BIN_DIR)
 
-build:
-	sam.cmd build
-
 auth:
 	aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
 api:
-	sam.cmd local start-api --env-vars .env
+	sam.cmd build && sam.cmd local start-api --env-vars .env
 
 invoke:
-	sam.cmd local start-lambda --env-vars .env
+	sam.cmd build && sam.cmd local start-lambda --env-vars .env
 
 .PHONY: all clean

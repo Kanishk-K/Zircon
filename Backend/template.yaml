@@ -16,6 +16,9 @@ Parameters:
   OPENAI_API_KEY:
     Type: String
     Description: OpenAI API Key
+  LEMONFOX_API_KEY:
+    Type: String
+    Description: LemonFox API Key
 
 Resources:
   LambdaInvokeRole:
@@ -142,5 +145,9 @@ Resources:
       CodeUri: cmd/Subtitles/
       Handler: bootstrap
       Runtime: provided.al2023
+      Timeout: 60
       Architectures:
         - x86_64
+      Environment:
+        Variables:
+          LEMONFOX_API_KEY: !Ref LEMONFOX_API_KEY

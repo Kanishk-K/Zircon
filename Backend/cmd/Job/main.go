@@ -14,6 +14,7 @@ import (
 
 	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/api-response"
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
+	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/jobutil"
 	lambdaclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/lambdaClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	"github.com/aws/aws-lambda-go/events"
@@ -34,19 +35,13 @@ type JobSchedulerService struct {
 	LLMClient    *openai.Client
 }
 
-type JobQueueRequest struct {
-	EntryID         string `json:"entryID"`
-	TranscriptLink  string `json:"transcript"`
-	BackgroundVideo string `json:"backgroundVideo"`
-}
-
 var validVideoChoices = map[string]bool{
 	"":          true,
 	"subway":    true,
 	"minecraft": true,
 }
 
-func validateRequest(requestBody *JobQueueRequest) error {
+func validateRequest(requestBody *jobutil.JobQueueRequest) error {
 	// Step 1: Ensure the transcript link is valid
 	url, err := url.Parse(requestBody.TranscriptLink)
 	if err != nil {
@@ -161,7 +156,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		},
 		IsBase64Encoded: false,
 	}
-	requestBody := JobQueueRequest{}
+	requestBody := jobutil.JobQueueRequest{}
 	err := json.Unmarshal([]byte(request.Body), &requestBody)
 	if err != nil {
 		apiresponse.APIErrorResponse(400, "Failed to decode request body", &resp)
@@ -206,11 +201,19 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		var ccfe *dynamodb.ConditionalCheckFailedException
 		if errors.As(err, &ccfe) {
 			// Job already exists
-			executionErr := jss.lambdaClient.InvokeAsyncLambda(os.Getenv("SUBTITLE_API"))
-			if executionErr != nil {
-				apiresponse.APIErrorResponse(500, "Failed to execute lambda", &resp)
-				log.Println("Failed to execute lambda: ", executionErr)
-				return resp, nil
+			if requestBody.BackgroundVideo != "" {
+				// Job is requesting a video generation
+				payload, err := json.Marshal(requestBody)
+				if err != nil {
+					apiresponse.APIErrorResponse(500, "Failed to marshal request body", &resp)
+					return resp, nil
+				}
+				executionErr := jss.lambdaClient.InvokeAsyncLambda(os.Getenv("SUBTITLE_API"), payload)
+				if executionErr != nil {
+					apiresponse.APIErrorResponse(500, "Failed to execute lambda", &resp)
+					log.Println("Failed to execute lambda: ", executionErr)
+					return resp, nil
+				}
 			}
 			apiresponse.APIErrorResponse(200, "Job already exists", &resp)
 			return resp, nil
@@ -247,6 +250,21 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
 		apiresponse.APIErrorResponse(500, "Failed to generate notes or summary", &resp)
 		return resp, err
+	}
+
+	if requestBody.BackgroundVideo != "" {
+		// Job is requesting a video generation
+		payload, err := json.Marshal(requestBody)
+		if err != nil {
+			apiresponse.APIErrorResponse(500, "Failed to marshal request body", &resp)
+			return resp, nil
+		}
+		executionErr := jss.lambdaClient.InvokeAsyncLambda(os.Getenv("SUBTITLE_API"), payload)
+		if executionErr != nil {
+			apiresponse.APIErrorResponse(500, "Failed to execute lambda", &resp)
+			log.Println("Failed to execute lambda: ", executionErr)
+			return resp, nil
+		}
 	}
 
 	apiresponse.APIErrorResponse(200, "Job scheduled successfully", &resp)
