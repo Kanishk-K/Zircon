@@ -8,9 +8,6 @@ import (
 	"log"
 	"os"
 
-	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/api-response"
-	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
-	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/jobutil"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	subtitleclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/subtitleClient"
 	"github.com/aws/aws-lambda-go/events"
@@ -22,26 +19,34 @@ import (
 const BUCKET = "lecture-processor"
 
 type SubtitleGenerationService struct {
-	dynamoClient dynamo.DynamoMethods
-	s3Client     s3client.S3Methods
-	TTSClient    subtitleclient.SubtitleGenerationMethods
+	s3Client  s3client.S3Methods
+	TTSClient subtitleclient.SubtitleGenerationMethods
 }
 
-func handler(request jobutil.JobQueueRequest) (events.APIGatewayProxyResponse, error) {
-	resp := events.APIGatewayProxyResponse{
-		Headers: map[string]string{
-			"Content-Type":                 "application/json",
-			"Access-Control-Allow-Origin":  "*",
-			"Access-Control-Allow-Headers": "Content-Type,Authorization",
-		},
-		IsBase64Encoded: false,
-	}
-	// Check if a video is requested, if not then this api need not be called
-	if request.BackgroundVideo == "" {
-		log.Println("No video requested")
-		apiresponse.APIErrorResponse(400, "No video requested", &resp)
-		return resp, nil
-	}
+/*
+This path should be protected by the following dynamodb filter:
+{
+  "eventName": ["MODIFY"],
+  "dynamodb": {
+    "OldImage": {
+      "subtitlesGenerated": {
+        "BOOL": [false]
+      }
+    },
+    "NewImage": {
+      "subtitlesGenerated": {
+        "BOOL": [true]
+      }
+    }
+  }
+}
+*/
+
+func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error) {
+	resp := events.DynamoDBEventResponse{}
+	// Print the request for debugging
+	entryID := request.Records[0].Change.NewImage["entryID"].String()
+	log.Printf("Processing request for entryID: %s\n", entryID)
 
 	// Initialize the service
 	region := os.Getenv("AWS_REGION")
@@ -55,76 +60,83 @@ func handler(request jobutil.JobQueueRequest) (events.APIGatewayProxyResponse, e
 			Region: aws.String(region),
 		},
 	}))
-	dynamoClient := dynamo.NewDynamoClient(awsSession)
 	s3Client := s3client.NewS3Client(awsSession)
 	TTSClient := subtitleclient.NewSubtitleClient()
 	sgs := SubtitleGenerationService{
-		dynamoClient: dynamoClient,
-		s3Client:     s3Client,
-		TTSClient:    TTSClient,
-	}
-	// Check if a subtitle has already been requested
-	err := sgs.dynamoClient.EnableSubtitleGeneration(request.EntryID)
-	if err != nil {
-		apiresponse.APIErrorResponse(400, "Subtitle already generated", &resp)
-		return resp, nil
+		s3Client:  s3Client,
+		TTSClient: TTSClient,
 	}
 	// Read the summary from S3
-	summary, err := sgs.s3Client.ReadFile(BUCKET, fmt.Sprintf("/assets/%s/Summary.txt", request.EntryID))
+	summary, err := sgs.s3Client.ReadFile(BUCKET, fmt.Sprintf("/assets/%s/Summary.txt", entryID))
 	if err != nil {
-		sgs.dynamoClient.DisableSubtitleGeneration(request.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to read summary", &resp)
-		return resp, nil
+		log.Printf("Failed to read summary from S3: %v", err)
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{events.DynamoDBBatchItemFailure{
+			ItemIdentifier: request.Records[0].EventID,
+		}}
+		return resp, err
 	}
 	defer summary.Close()
 	summaryBytes, err := io.ReadAll(summary)
 	if err != nil {
-		sgs.dynamoClient.DisableSubtitleGeneration(request.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to read summary", &resp)
-		return resp, nil
+		log.Printf("Failed to read summary from S3: %v", err)
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{events.DynamoDBBatchItemFailure{
+			ItemIdentifier: request.Records[0].EventID,
+		}}
+		return resp, err
 	}
+
+	// Generate TTS
 	ttsResponse, err := sgs.TTSClient.GenerateTTS(string(summaryBytes))
-	// ttsResponse, err := sgs.TTSClient.GenerateTTS("Hello world, I am a Zircon test!")
 	if err != nil {
-		sgs.dynamoClient.DisableSubtitleGeneration(request.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to generate TTS", &resp)
-		return resp, nil
+		log.Printf("Failed to generate TTS: %v", err)
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{events.DynamoDBBatchItemFailure{
+			ItemIdentifier: request.Records[0].EventID,
+		}}
+		return resp, err
 	}
-	// Upload the tts response to S3
 	ttsResponseBytes, err := json.Marshal(ttsResponse)
 	if err != nil {
-		sgs.dynamoClient.DisableSubtitleGeneration(request.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to marshal tts response", &resp)
-		return resp, nil
+		log.Printf("Failed to marshal TTS response: %v", err)
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{events.DynamoDBBatchItemFailure{
+			ItemIdentifier: request.Records[0].EventID,
+		}}
+		return resp, err
 	}
-	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/TTSResponse.json", request.EntryID), bytes.NewReader(ttsResponseBytes), "application/json")
+	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/TTSResponse.json", entryID), bytes.NewReader(ttsResponseBytes), "application/json")
 	if err != nil {
-		sgs.dynamoClient.DisableSubtitleGeneration(request.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to upload tts response", &resp)
-		return resp, nil
+		log.Printf("Failed to upload TTS response: %v", err)
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{events.DynamoDBBatchItemFailure{
+			ItemIdentifier: request.Records[0].EventID,
+		}}
+		return resp, err
 	}
 	decodedAudio, err := subtitleclient.ConvertB64ToAudio(ttsResponse.Audio)
 	if err != nil {
-		sgs.dynamoClient.DisableSubtitleGeneration(request.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to decode audio", &resp)
-		return resp, nil
+		log.Printf("Failed to decode audio: %v", err)
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{events.DynamoDBBatchItemFailure{
+			ItemIdentifier: request.Records[0].EventID,
+		}}
+		return resp, err
 	}
 	// Upload the audio to S3
-	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/Audio.mp3", request.EntryID), bytes.NewReader(decodedAudio), "audio/mp3")
+	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/Audio.mp3", entryID), bytes.NewReader(decodedAudio), "audio/mp3")
 	if err != nil {
-		sgs.dynamoClient.DisableSubtitleGeneration(request.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to upload audio", &resp)
-		return resp, nil
+		log.Printf("Failed to upload audio: %v", err)
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{events.DynamoDBBatchItemFailure{
+			ItemIdentifier: request.Records[0].EventID,
+		}}
+		return resp, err
 	}
 	lines := subtitleclient.GenerateSubtitleLines(ttsResponse.WordTimeStamps)
 	assContent := subtitleclient.GenerateASSContent(lines)
-	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/Subtitle.ass", request.EntryID), bytes.NewReader([]byte(assContent)), "application/x-ass")
+	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/Subtitle.ass", entryID), bytes.NewReader([]byte(assContent)), "application/x-ass")
 	if err != nil {
-		sgs.dynamoClient.DisableSubtitleGeneration(request.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to upload subtitle", &resp)
-		return resp, nil
+		log.Printf("Failed to upload subtitles: %v", err)
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{events.DynamoDBBatchItemFailure{
+			ItemIdentifier: request.Records[0].EventID,
+		}}
+		return resp, err
 	}
-	apiresponse.APIErrorResponse(200, "Successful Invocation", &resp)
 	return resp, nil
 }
 

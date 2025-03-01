@@ -19,8 +19,7 @@ type DynamoMethods interface {
 	// Job modification methods
 	CreateJobIfNotExists(entryID string, generatedBy string) error
 	DeleteJobByUser(entryID string, userID string) error
-	EnableSubtitleGeneration(entryID string) error
-	DisableSubtitleGeneration(entryID string) error
+	UpdateJobStatus(entryID string, videoID string) error
 }
 
 type DynamoClient struct {
@@ -157,7 +156,10 @@ func (dc *DynamoClient) DeleteJobByUser(entryID string, userID string) error {
 	return nil
 }
 
-func (dc *DynamoClient) EnableSubtitleGeneration(entryID string) error {
+func (dc *DynamoClient) UpdateJobStatus(entryID string, videoID string) error {
+	if videoID == "" {
+		return nil
+	}
 	_, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
 		TableName: aws.String("Jobs"),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -165,42 +167,19 @@ func (dc *DynamoClient) EnableSubtitleGeneration(entryID string) error {
 				S: aws.String(entryID),
 			},
 		},
-		UpdateExpression:    aws.String("SET subtitlesGenerated = :true"),
-		ConditionExpression: aws.String("subtitlesGenerated = :false"),
+		UpdateExpression:    aws.String("ADD videosAvailable :videoID SET subtitlesGenerated = :true"),
+		ConditionExpression: aws.String("attribute_exists(entryID)"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":videoID": {
+				SS: aws.StringSlice([]string{videoID}),
+			},
 			":true": {
 				BOOL: aws.Bool(true),
 			},
-			":false": {
-				BOOL: aws.Bool(false),
-			},
 		},
 	})
 	if err != nil {
-		log.Println("Error disabling subtitles for entryID: ", entryID, err)
-		return err
-	}
-	return nil
-}
-
-func (dc *DynamoClient) DisableSubtitleGeneration(entryID string) error {
-	_, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
-		TableName: aws.String("Jobs"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"entryID": {
-				S: aws.String(entryID),
-			},
-		},
-		UpdateExpression:    aws.String("SET subtitlesGenerated = :false"),
-		ConditionExpression: aws.String("attribute_exists(entryID)"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":false": {
-				BOOL: aws.Bool(false),
-			},
-		},
-	})
-	if err != nil {
-		log.Println("Error disabling subtitles for entryID: ", entryID, err)
+		log.Printf("Error updating job data: %v", err)
 		return err
 	}
 	return nil

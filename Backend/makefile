@@ -23,9 +23,13 @@ auth:
 	aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
 api:
-	sam.cmd build && sam.cmd local start-api --env-vars .env
+	sam.cmd build --cached && sam.cmd local start-api --env-vars .env
 
 invoke:
-	sam.cmd build && sam.cmd local start-lambda --env-vars .env
+	sam.cmd build --cached && sam.cmd local start-lambda --env-vars .env
+
+tts: 
+	@[ -z $(entryID) ] && echo "entryID is required add the argument entryID=entryID" && exit 1 || echo "entryID is $(entryID)"
+	sam.cmd build --cached && cat cmd/Subtitles/testEvent.json | sed 's/TEST_EVENT/$(entryID)/g' | sam.cmd local invoke --env-vars .env --event - TTSGenerationFunction
 
 .PHONY: all clean

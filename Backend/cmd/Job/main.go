@@ -15,7 +15,6 @@ import (
 	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/api-response"
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/jobutil"
-	lambdaclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/lambdaClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -31,7 +30,6 @@ const BUCKET = "lecture-processor"
 type JobSchedulerService struct {
 	dynamoClient dynamo.DynamoMethods
 	s3Client     s3client.S3Methods
-	lambdaClient lambdaclient.LambdaMethods
 	LLMClient    *openai.Client
 }
 
@@ -181,14 +179,12 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	}))
 	dynamoClient := dynamo.NewDynamoClient(awsSession)
 	s3Client := s3client.NewS3Client(awsSession)
-	lambdaClient := lambdaclient.NewLambdaClient(awsSession)
 
 	LLMClient := openai.NewClient()
 
 	jss := JobSchedulerService{
 		dynamoClient: dynamoClient,
 		s3Client:     s3Client,
-		lambdaClient: lambdaClient,
 		LLMClient:    LLMClient,
 	}
 	/*
@@ -200,22 +196,14 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	if err != nil {
 		var ccfe *dynamodb.ConditionalCheckFailedException
 		if errors.As(err, &ccfe) {
-			// Job already exists
-			if requestBody.BackgroundVideo != "" {
-				// Job is requesting a video generation
-				payload, err := json.Marshal(requestBody)
-				if err != nil {
-					apiresponse.APIErrorResponse(500, "Failed to marshal request body", &resp)
-					return resp, nil
-				}
-				executionErr := jss.lambdaClient.InvokeAsyncLambda(os.Getenv("SUBTITLE_API"), payload)
-				if executionErr != nil {
-					apiresponse.APIErrorResponse(500, "Failed to execute lambda", &resp)
-					log.Println("Failed to execute lambda: ", executionErr)
-					return resp, nil
-				}
+			// Job already exists OR user has exceeded the permitted number of jobs
+			// Try to update the job, if it fails then the user has exceeded the permitted number of jobs
+			subErr := jss.dynamoClient.UpdateJobStatus(requestBody.EntryID, requestBody.BackgroundVideo)
+			if subErr != nil {
+				apiresponse.APIErrorResponse(500, "Failed to update job", &resp)
+				return resp, nil
 			}
-			apiresponse.APIErrorResponse(200, "Job already exists", &resp)
+			apiresponse.APIErrorResponse(200, "Updated Job Entry", &resp)
 			return resp, nil
 		} else {
 			// Some other error occurred
@@ -252,19 +240,13 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return resp, err
 	}
 
-	if requestBody.BackgroundVideo != "" {
-		// Job is requesting a video generation
-		payload, err := json.Marshal(requestBody)
-		if err != nil {
-			apiresponse.APIErrorResponse(500, "Failed to marshal request body", &resp)
-			return resp, nil
-		}
-		executionErr := jss.lambdaClient.InvokeAsyncLambda(os.Getenv("SUBTITLE_API"), payload)
-		if executionErr != nil {
-			apiresponse.APIErrorResponse(500, "Failed to execute lambda", &resp)
-			log.Println("Failed to execute lambda: ", executionErr)
-			return resp, nil
-		}
+	// Update job to queue for further processing
+	err = jss.dynamoClient.UpdateJobStatus(requestBody.EntryID, requestBody.BackgroundVideo)
+	if err != nil {
+		_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
+		_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
+		apiresponse.APIErrorResponse(500, "Failed to update job status", &resp)
+		return resp, err
 	}
 
 	apiresponse.APIErrorResponse(200, "Job scheduled successfully", &resp)
