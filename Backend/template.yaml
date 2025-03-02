@@ -145,3 +145,25 @@ Resources:
       Environment:
         Variables:
           LEMONFOX_API_KEY: !Ref LEMONFOX_API_KEY
+
+  VideoGenerationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Queue/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Timeout: 30
+      Events:
+        DynamoDBVideoEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt DynamoDBTable.StreamArn
+            BatchSize: 1
+            StartingPosition: LATEST
+      Environment:
+        Variables:
+          REDIS_URL: !Ref REDIS_URL

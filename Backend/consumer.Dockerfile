@@ -39,11 +39,9 @@ COPY --from=builder /app/main .
 RUN chmod +x ./main
 
 # Copy the static files
+# COPY --from=builder /app/static ./static
 COPY --from=builder /app/entrypoint.sh .
 RUN chmod +x ./entrypoint.sh
-
-# Expose port 8080 to the outside world
-EXPOSE 8080
 
 # Command to run the executable
 CMD ["./entrypoint.sh"]

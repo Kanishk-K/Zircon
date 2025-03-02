@@ -1,0 +1,57 @@
+{
+  "Records": [
+    {
+      "eventID": "9f46ebcb0fa18a4137a1913d94dc30e2",
+      "eventName": "MODIFY",
+      "eventVersion": "1.1",
+      "eventSource": "aws:dynamodb",
+      "awsRegion": "us-east-1",
+      "dynamodb": {
+        "ApproximateCreationDateTime": 1740864145.0,
+        "Keys": {
+          "entryID": {
+            "S": "TEST_EVENT"
+          }
+        },
+        "NewImage": {
+          "generatedOn": {
+            "S": "2025-02-24 04:44:53"
+          },
+          "videosAvailable": {
+            "SS": ["minecraft", "subway"]
+          },
+          "generatedBy": {
+            "S": "USER"
+          },
+          "entryID": {
+            "S": "TEST_EVENT"
+          },
+          "subtitlesGenerated": {
+            "BOOL": true
+          }
+        },
+        "OldImage": {
+          "generatedOn": {
+            "S": "2025-02-24 04:44:53"
+          },
+          "videosAvailable": {
+            "SS": ["minecraft"]
+          },
+          "generatedBy": {
+            "S": "USER"
+          },
+          "entryID": {
+            "S": "TEST_EVENT"
+          },
+          "subtitlesGenerated": {
+            "BOOL": true
+          }
+        },
+        "SequenceNumber": "191221900000000115155414939",
+        "SizeBytes": 241,
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "eventSourceARN": "arn:aws:dynamodb:us-east-1:445567081553:table/Jobs/stream/2025-03-01T01:43:12.780"
+    }
+  ]
+}
