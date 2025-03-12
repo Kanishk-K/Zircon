@@ -168,10 +168,13 @@ func (dc *DynamoClient) UpdateJobStatus(entryID string, videoID string) error {
 			},
 		},
 		UpdateExpression:    aws.String("ADD videosAvailable :videoID SET subtitlesGenerated = :true"),
-		ConditionExpression: aws.String("attribute_exists(entryID)"),
+		ConditionExpression: aws.String("attribute_exists(entryID) AND NOT contains(videosAvailable, :videoIDString)"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":videoID": {
 				SS: aws.StringSlice([]string{videoID}),
+			},
+			":videoIDString": {
+				S: aws.String(videoID),
 			},
 			":true": {
 				BOOL: aws.Bool(true),

@@ -200,4 +200,35 @@ resource "aws_security_group" "ecs-node-sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  egress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.elasticache-sg.id]
+  }
+}
+
+resource "aws_security_group" "elasticache-sg" {
+  name        = "zircon-elasticache-sg"
+  description = "Allow traffic to the ElastiCache cluster"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress {
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "lambda-elasticache-sg" {
+  name        = "zircon-lambda-elasticache-sg"
+  description = "Allow traffic to the ElastiCache cluster from a Lambda function"
+  vpc_id      = aws_vpc.vpc.id
+  egress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.elasticache-sg.id]
+  }
 }

@@ -190,7 +190,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	/*
 		Buisness logic goes here
 	*/
-	subject := request.RequestContext.Authorizer["lambda"].(map[string]interface{})["sub"].(string)
+	subject := request.RequestContext.Authorizer["sub"].(string)
 	// Add the job if it doesn't exist
 	err = jss.dynamoClient.CreateJobIfNotExists(requestBody.EntryID, subject)
 	if err != nil {
@@ -198,6 +198,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		if errors.As(err, &ccfe) {
 			// Job already exists OR user has exceeded the permitted number of jobs
 			// Try to update the job, if it fails then the user has exceeded the permitted number of jobs
+			log.Printf("Job already exists, updating job status should more items be added.")
 			subErr := jss.dynamoClient.UpdateJobStatus(requestBody.EntryID, requestBody.BackgroundVideo)
 			if subErr != nil {
 				apiresponse.APIErrorResponse(500, "Failed to update job", &resp)

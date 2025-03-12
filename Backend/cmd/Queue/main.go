@@ -27,12 +27,12 @@ This path should be protected by the following dynamodb filter:
 }
 */
 
-func parseVideoInformation(record events.DynamoDBEventRecord) (string, asynq.Option, error) {
+func parseVideoInformation(change events.DynamoDBStreamRecord) (string, asynq.Option, error) {
 	// Two options for video generation
 	// 1. This is the first time the video is being generated (medium priority)
 	// 2. This is a generation of a new video with a different background (low priority)
-	oldImage := record.Change.OldImage
-	newImage := record.Change.NewImage
+	oldImage := change.OldImage
+	newImage := change.NewImage
 	if oldImage["videosAvailable"].IsNull() {
 		// This is the first time the video is being generated
 		return newImage["videosAvailable"].StringSet()[0], asynq.Queue("high"), nil
@@ -65,6 +65,8 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 	entryID := request.Records[0].Change.NewImage["entryID"].String()
 	log.Printf("Processing request for entryID: %s\n", entryID)
 
+	log.Printf("Request: %v\n", request.Records[0].Change)
+
 	// Initialize the service
 	client := asynq.NewClient(asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")})
 	if client == nil {
@@ -77,7 +79,7 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 		return resp, fmt.Errorf("could not connect to Redis")
 	}
 	defer client.Close()
-	backgroundVideo, priority, err := parseVideoInformation(request.Records[0])
+	backgroundVideo, priority, err := parseVideoInformation(request.Records[0].Change)
 	if err != nil {
 		log.Printf("Could not determine the background video: %s\n", err)
 		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{
@@ -88,6 +90,7 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 		return resp, err
 	}
 	log.Printf("Background video: %s\n", backgroundVideo)
+	log.Printf("Priority: %s\n", priority)
 	qs := QueueService{jobQueue: client}
 	task, err := tasks.NewVideoGenerationTask(entryID, backgroundVideo)
 	if err != nil {

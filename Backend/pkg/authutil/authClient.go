@@ -67,12 +67,15 @@ func (ac *AuthClient) VerifyJWT(tokenString string) (jwt.MapClaims, error) {
 func (ac *AuthClient) SecureRoute(request events.APIGatewayProxyRequest) (jwt.MapClaims, error) {
 	tokenString := request.Headers["Authorization"]
 	if tokenString == "" {
+		// Check for lower case authorization header from apigateway
+		tokenString = request.Headers["authorization"]
+	}
+	if tokenString == "" {
 		log.Printf("Missing authorization header (JWT)")
 		return nil, fmt.Errorf("missing authorization header (JWT)")
 	}
 	// Ensure to add Bearer to the token for good practice
 	tokenString = tokenString[len("Bearer "):]
-	log.Printf("Token: %s", tokenString)
 	claims, err := ac.VerifyJWT(tokenString)
 	if err != nil {
 		log.Printf("Invalid Token Provided")

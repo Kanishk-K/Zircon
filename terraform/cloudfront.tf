@@ -42,7 +42,9 @@ resource "aws_cloudfront_distribution" "web_routing" {
     compress               = true
     forwarded_values {
       query_string = true # Needed for oauth
-      headers      = []
+      headers = [
+        "Authorization"
+      ]
       cookies {
         forward = "none"
       }

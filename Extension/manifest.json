@@ -35,5 +35,5 @@
     "service_worker": "background.js"
   },
   "permissions": ["storage", "management", "scripting", "tabs"],
-  "host_permissions": ["http://localhost:3000/*"]
+  "host_permissions": ["https://analysis.socialcoding.net/*"]
 }

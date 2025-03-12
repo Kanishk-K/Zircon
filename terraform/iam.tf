@@ -29,6 +29,7 @@ data "aws_iam_policy_document" "ecs-task-execution-trust-policy" {
   }
 }
 
+# DEFINE the trust policy for the Lambda Role
 data "aws_iam_policy_document" "lambda-trust-policy" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -43,6 +44,185 @@ data "aws_iam_policy_document" "lambda-trust-policy" {
 resource "aws_iam_role" "lambda-role" {
   name               = "lambda-role"
   assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy.json
+}
+
+# CREATE the Lambda Callback Role to allow writing to the users table
+resource "aws_iam_role" "lambda-callback-role" {
+  name               = "lambda-callback-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy.json
+}
+
+data "aws_iam_policy_document" "callback-dynamodb-description" {
+  statement {
+    actions = ["dynamodb:PutItem"]
+    resources = [
+      aws_dynamodb_table.users-table.arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "callback-dynamodb" {
+  name        = "callback-dynamodb"
+  description = "Allows the callback lambda to write to the users table"
+  policy      = data.aws_iam_policy_document.callback-dynamodb-description.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-callback-dynamodb" {
+  role       = aws_iam_role.lambda-callback-role.name
+  policy_arn = aws_iam_policy.callback-dynamodb.arn
+}
+
+# CREATE the Lambda Authorizer Role for protecting the API Gateway
+resource "aws_iam_role" "lambda-authorizer-role" {
+  name               = "lambda-authorizer-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy.json
+}
+
+# CREATE the Lambda Submit Job Role
+resource "aws_iam_role" "submit-job-role" {
+  name               = "submit-job-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy.json
+}
+
+data "aws_iam_policy_document" "submit-dynamodb-description" {
+  statement {
+    actions = ["dynamodb:PutItem"]
+    resources = [
+      aws_dynamodb_table.jobs-table.arn,
+    ]
+  }
+  statement {
+    actions = ["dynamodb:UpdateItem"]
+    resources = [
+      aws_dynamodb_table.jobs-table.arn,
+      aws_dynamodb_table.users-table.arn,
+    ]
+  }
+  statement {
+    actions = ["dynamodb:DeleteItem"]
+    resources = [
+      aws_dynamodb_table.jobs-table.arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "submit-dynamodb" {
+  name        = "submit-dynamodb"
+  description = "Allows the submit job lambda to write to the jobs and user tables"
+  policy      = data.aws_iam_policy_document.submit-dynamodb-description.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-submit-dynamodb" {
+  role       = aws_iam_role.submit-job-role.name
+  policy_arn = aws_iam_policy.submit-dynamodb.arn
+}
+
+data "aws_iam_policy_document" "submit-s3-description" {
+  statement {
+    actions = ["s3:PutObject"]
+    resources = [
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Summary.txt",
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Notes.md",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "submit-s3" {
+  name        = "submit-s3"
+  description = "Allows the submit job lambda to write summaries and notes to the S3 bucket"
+  policy      = data.aws_iam_policy_document.submit-s3-description.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-submit-s3" {
+  role       = aws_iam_role.submit-job-role.name
+  policy_arn = aws_iam_policy.submit-s3.arn
+}
+
+# CREATE the TTS Lambda role
+resource "aws_iam_role" "tts-role" {
+  name               = "tts-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy.json
+}
+
+data "aws_iam_policy_document" "stream-access-description" {
+  statement {
+    actions = ["dynamodb:GetRecords", "dynamodb:GetShardIterator", "dynamodb:DescribeStream", "dynamodb:ListStreams"]
+    resources = [
+      aws_dynamodb_table.jobs-table.stream_arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "stream-access" {
+  name        = "stream-access"
+  description = "Allows the TTS lambda to access the jobs dynamodb stream"
+  policy      = data.aws_iam_policy_document.stream-access-description.json
+}
+
+resource "aws_iam_policy_attachment" "lambda-stream-access" {
+  name       = "lambda-stream-access"
+  roles      = [aws_iam_role.tts-role.name, aws_iam_role.queue-lambda.name]
+  policy_arn = aws_iam_policy.stream-access.arn
+}
+
+data "aws_iam_policy_document" "tts-s3-description" {
+  statement {
+    actions = ["s3:GetObject"]
+    resources = [
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Summary.txt",
+    ]
+  }
+  statement {
+    actions = ["s3:PutObject"]
+    resources = [
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Audio.mp3",
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Subtitle.ass",
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/TTSResponse.json",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "tts-s3" {
+  name        = "tts-s3"
+  description = "Allows the subtitle function to read and write to the s3 bucket."
+  policy      = data.aws_iam_policy_document.tts-s3-description.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda-tts-s3-access" {
+  role       = aws_iam_role.tts-role.name
+  policy_arn = aws_iam_policy.tts-s3.arn
+}
+
+# CREATE the Queue Lambda Role
+resource "aws_iam_role" "queue-lambda" {
+  name               = "queue-lambda"
+  assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy.json
+}
+
+data "aws_iam_policy_document" "innerVPC-description" {
+  statement {
+    actions   = ["ec2:CreateNetworkInterface", "ec2:DescribeNetworkInterfaces", "ec2:DeleteNetworkInterface"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "innerVPC-policy" {
+  name        = "innerVPC-policy"
+  description = "Allows for lambdas to create themselves in a VPC"
+  policy      = data.aws_iam_policy_document.innerVPC-description.json
+}
+
+resource "aws_iam_policy_attachment" "innerVPC-lambda-policy" {
+  name       = "innerVPC-lambda-policy"
+  roles      = [aws_iam_role.queue-lambda.name]
+  policy_arn = aws_iam_policy.innerVPC-policy.arn
+}
+
+# Lambda logging policy attachment
+resource "aws_iam_policy_attachment" "submit-cloudwatch" {
+  name       = "submit-cloudwatch"
+  roles      = [aws_iam_role.submit-job-role.name, aws_iam_role.lambda-authorizer-role.name, aws_iam_role.tts-role.name, aws_iam_role.queue-lambda.name]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 #
@@ -67,43 +247,22 @@ resource "aws_iam_instance_profile" "ecs-consumer-task-profile" {
   role = aws_iam_role.ecs-consumer-task-role.name
 }
 
-# DEFINE the dynamodb access policy for the ECS Consumer Task Role
-data "aws_iam_policy_document" "ecs-consumer-task-dynamodb" {
-  statement {
-    actions = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
-    resources = [
-      aws_dynamodb_table.jobs-table.arn,
-    ]
-  }
-}
-
-# CREATE the dynamodb access policy for the ECS Consumer Task Role
-resource "aws_iam_policy" "ecs-consumer-task-dynamodb" {
-  name        = "lecture-analyzer-ecs-consumer-task-dynamodb"
-  description = "Allows the task to access DynamoDB"
-  policy      = data.aws_iam_policy_document.ecs-consumer-task-dynamodb.json
-}
-
-# ATTACH the dynamodb access policy to the ECS Consumer Task Role
-resource "aws_iam_role_policy_attachment" "ecs-consumer-task-policy" {
-  role       = aws_iam_role.ecs-consumer-task-role.name
-  policy_arn = aws_iam_policy.ecs-consumer-task-dynamodb.arn
-}
-
 # DEFINE the s3 access policy for the ECS Consumer Task Role
 data "aws_iam_policy_document" "ecs-consumer-task-s3" {
   statement {
     effect  = "Allow"
-    actions = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    actions = ["s3:GetObject"]
     resources = [
-      "${aws_s3_bucket.s3_bucket.arn}/assets/*"
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Audio.mp3",
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Subtitle.ass",
+      "${aws_s3_bucket.s3_bucket.arn}/background/*"
     ]
   }
   statement {
     effect  = "Allow"
-    actions = ["s3:GetObject"]
+    actions = ["s3:PutObject"]
     resources = [
-      "${aws_s3_bucket.s3_bucket.arn}/background/*"
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/*.mp4"
     ]
   }
   statement {
@@ -128,27 +287,6 @@ resource "aws_iam_role_policy_attachment" "ecs-consumer-task-s3-policy" {
   policy_arn = aws_iam_policy.ecs-consumer-task-s3.arn
 }
 
-# DEFINE the polly access policy for the ECS Consumer Task Role
-data "aws_iam_policy_document" "ecs-consumer-task-polly" {
-  statement {
-    actions   = ["polly:StartSpeechSynthesisTask", "polly:GetSpeechSynthesisTask"]
-    resources = ["*"]
-  }
-}
-
-# CREATE the polly access policy for the ECS Consumer Task Role
-resource "aws_iam_policy" "ecs-consumer-task-polly" {
-  name        = "lecture-analyzer-ecs-consumer-task-polly"
-  description = "Allows the task to access Polly"
-  policy      = data.aws_iam_policy_document.ecs-consumer-task-polly.json
-}
-
-# ATTACH the polly access policy to the ECS Consumer Task Role
-resource "aws_iam_role_policy_attachment" "ecs-consumer-task-polly-policy" {
-  role       = aws_iam_role.ecs-consumer-task-role.name
-  policy_arn = aws_iam_policy.ecs-consumer-task-polly.arn
-}
-
 # CREATE the ECS Consumer Task Execution Role
 resource "aws_iam_role" "ecs-consumer-task-execution-role" {
   name               = "lecture-analyzer-ecs-consumer-task-execution-role"
@@ -159,29 +297,6 @@ resource "aws_iam_role" "ecs-consumer-task-execution-role" {
 resource "aws_iam_role_policy_attachment" "ecs-consumer-task-execution-role-policy" {
   role       = aws_iam_role.ecs-consumer-task-execution-role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-# DEFINE the secrets access policy for the ECS Consumer Task Execution Role
-data "aws_iam_policy_document" "ecs-consumer-task-execution-secrets" {
-  statement {
-    actions = ["ssm:GetParameter", "ssm:GetParameters"]
-    resources = [
-      aws_ssm_parameter.OPENAI_API_KEY.arn
-    ]
-  }
-}
-
-# CREATE the ECS Consumer Task Execution Role resource access policy
-resource "aws_iam_policy" "ecs-consumer-task-execution-secrets" {
-  name        = "lecture-analyzer-ecs-consumer-task-execution-secrets"
-  description = "Allows the Consumer ECS controller to access resources"
-  policy      = data.aws_iam_policy_document.ecs-consumer-task-execution-secrets.json
-}
-
-# ATTACH the secrets access policy to the ECS Consumer Task Execution Role
-resource "aws_iam_role_policy_attachment" "ecs-consumer-task-execution-policy" {
-  role       = aws_iam_role.ecs-consumer-task-execution-role.name
-  policy_arn = aws_iam_policy.ecs-consumer-task-execution-secrets.arn
 }
 
 # DEFINE the s3 access policy for CloudFront

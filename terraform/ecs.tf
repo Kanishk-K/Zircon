@@ -33,9 +33,9 @@ resource "aws_launch_template" "ecs-consumer-launch-template" {
 resource "aws_autoscaling_group" "ecs-consumer-asg" {
   name                = "lecture-analyzer-ecs-consumer-asg"
   vpc_zone_identifier = aws_subnet.private-subnets[*].id
-  min_size            = 2
-  max_size            = 2
-  desired_capacity    = 2
+  min_size            = 1
+  max_size            = 1
+  desired_capacity    = 1
   launch_template {
     id      = aws_launch_template.ecs-consumer-launch-template.id
     version = "$Latest"
@@ -110,82 +110,16 @@ resource "aws_ecs_task_definition" "ecs-consumer-task-definition" {
       {
         name  = "REDIS_URL"
         value = "${aws_elasticache_replication_group.task-queue.primary_endpoint_address}:6379"
-      },
-      {
-        name  = "API_ONLY"
-        value = "true"
-      }
-    ]
-    secrets = [
-      {
-        name      = "OPENAI_API_KEY"
-        valueFrom = aws_ssm_parameter.OPENAI_API_KEY.arn
       }
     ]
   }])
 }
-
-# CREATE a task definition for the ECS consumer (for video processing and general operations)
-resource "aws_ecs_task_definition" "ecs-consumer-task-definition-video" {
-  family             = "lecture-analyzer-ecs-consumer-video"
-  task_role_arn      = aws_iam_role.ecs-consumer-task-role.arn
-  execution_role_arn = aws_iam_role.ecs-consumer-task-execution-role.arn
-  network_mode       = "host"
-  cpu                = 1024
-  memory             = 952
-  container_definitions = jsonencode([{
-    cpu       = 1024
-    memory    = 952
-    name      = "lecture-analyzer-consumer-container-video"
-    image     = "${aws_ecrpublic_repository.consumer-images.repository_uri}:latest"
-    essential = true
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "ecs-consumer"
-        "awslogs-region"        = "us-east-1"
-        "awslogs-stream-prefix" = "ecs-consumer-stream"
-      }
-    }
-    environment = [
-      {
-        name  = "REDIS_URL"
-        value = "${aws_elasticache_replication_group.task-queue.primary_endpoint_address}:6379"
-      },
-      {
-        name  = "API_ONLY"
-        value = "false"
-      }
-    ]
-    secrets = [
-      {
-        name      = "OPENAI_API_KEY"
-        valueFrom = aws_ssm_parameter.OPENAI_API_KEY.arn
-      }
-    ]
-  }])
-}
-
 
 # CREATE a service for the ECS consumer
 resource "aws_ecs_service" "consumer-service" {
   name            = "lecture-analyzer-ecs-consumer-service"
   cluster         = aws_ecs_cluster.consumer-cluster.id
   task_definition = aws_ecs_task_definition.ecs-consumer-task-definition.arn
-  desired_count   = 1
-  capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.ecs-consumer-capacity-provider.name
-    base              = 1
-    weight            = 100
-  }
-  depends_on = [aws_ecs_cluster_capacity_providers.ecs-consumer-capacity-provider, aws_s3_bucket.s3_bucket]
-}
-
-# CREATE a service for the ECS consumer (video processing)
-resource "aws_ecs_service" "consumer-service-video" {
-  name            = "lecture-analyzer-ecs-consumer-service-video"
-  cluster         = aws_ecs_cluster.consumer-cluster.id
-  task_definition = aws_ecs_task_definition.ecs-consumer-task-definition-video.arn
   desired_count   = 1
   capacity_provider_strategy {
     capacity_provider = aws_ecs_capacity_provider.ecs-consumer-capacity-provider.name
