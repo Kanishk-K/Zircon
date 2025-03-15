@@ -19,53 +19,27 @@ type QueueService struct {
 /*
 This path should be protected by the following dynamodb filter:
 {
-  "eventName": ["MODIFY"],
-  "dynamodb": {
-	"NewImage": {
-		videosAvailable: [{"exists": true}]
-	}
+  "eventName": ["INSERT"],
 }
 */
-
-func parseVideoInformation(change events.DynamoDBStreamRecord) (string, asynq.Option, error) {
-	// Two options for video generation
-	// 1. This is the first time the video is being generated (medium priority)
-	// 2. This is a generation of a new video with a different background (low priority)
-	oldImage := change.OldImage
-	newImage := change.NewImage
-	if oldImage["videosAvailable"].IsNull() {
-		// This is the first time the video is being generated
-		return newImage["videosAvailable"].StringSet()[0], asynq.Queue("high"), nil
-	} else {
-		// This is a generation of a new video with a different background
-		// Set difference the newImage and oldImage to determine the background video
-		oldVideos := oldImage["videosAvailable"].StringSet()
-		newVideos := newImage["videosAvailable"].StringSet()
-		if len(oldVideos) == len(newVideos) {
-			// No new videos have been added
-			return "", nil, fmt.Errorf("no new videos have been added")
-		}
-		oldVideoMap := make(map[string]bool)
-		for _, video := range oldVideos {
-			oldVideoMap[video] = true
-		}
-		for _, video := range newVideos {
-			if _, ok := oldVideoMap[video]; !ok {
-				// This is the new video that was added
-				return video, asynq.Queue("low"), nil
-			}
-		}
-	}
-	return "", nil, fmt.Errorf("could not determine the background video")
-}
 
 func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error) {
 	resp := events.DynamoDBEventResponse{}
 	// Print the request for debugging
 	entryID := request.Records[0].Change.NewImage["entryID"].String()
+	backgroundVideo := request.Records[0].Change.NewImage["requestedVideo"].String()
+	if entryID == "" || backgroundVideo == "" {
+		log.Printf("EntryID or background video is empty")
+		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{
+			{
+				ItemIdentifier: request.Records[0].EventID,
+			},
+		}
+		return resp, fmt.Errorf("entryID or background video is empty")
+	}
+	priority := asynq.Queue("low")
 	log.Printf("Processing request for entryID: %s\n", entryID)
-
-	log.Printf("Request: %v\n", request.Records[0].Change)
+	log.Printf("Request: %v\n", request.Records[0])
 
 	// Initialize the service
 	client := asynq.NewClient(asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")})
@@ -79,16 +53,6 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 		return resp, fmt.Errorf("could not connect to Redis")
 	}
 	defer client.Close()
-	backgroundVideo, priority, err := parseVideoInformation(request.Records[0].Change)
-	if err != nil {
-		log.Printf("Could not determine the background video: %s\n", err)
-		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{
-			{
-				ItemIdentifier: request.Records[0].EventID,
-			},
-		}
-		return resp, err
-	}
 	log.Printf("Background video: %s\n", backgroundVideo)
 	log.Printf("Priority: %s\n", priority)
 	qs := QueueService{jobQueue: client}

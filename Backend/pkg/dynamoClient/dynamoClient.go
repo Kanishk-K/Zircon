@@ -1,6 +1,7 @@
 package dynamo
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -19,7 +20,11 @@ type DynamoMethods interface {
 	// Job modification methods
 	CreateJobIfNotExists(entryID string, generatedBy string) error
 	DeleteJobByUser(entryID string, userID string) error
-	UpdateJobStatus(entryID string, videoID string) error
+	GenerateSubtitles(entryID string, videoID string) error
+	AddVideoToJob(entryID string, videoID string) error
+
+	// Video request methods
+	CreateVideoRequest(entityID string, requestedVideo string, requestedBy string) error
 }
 
 type DynamoClient struct {
@@ -156,7 +161,7 @@ func (dc *DynamoClient) DeleteJobByUser(entryID string, userID string) error {
 	return nil
 }
 
-func (dc *DynamoClient) UpdateJobStatus(entryID string, videoID string) error {
+func (dc *DynamoClient) GenerateSubtitles(entryID string, videoID string) error {
 	if videoID == "" {
 		return nil
 	}
@@ -168,13 +173,10 @@ func (dc *DynamoClient) UpdateJobStatus(entryID string, videoID string) error {
 			},
 		},
 		UpdateExpression:    aws.String("ADD videosAvailable :videoID SET subtitlesGenerated = :true"),
-		ConditionExpression: aws.String("attribute_exists(entryID) AND NOT contains(videosAvailable, :videoIDString)"),
+		ConditionExpression: aws.String("attribute_exists(entryID)"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":videoID": {
 				SS: aws.StringSlice([]string{videoID}),
-			},
-			":videoIDString": {
-				S: aws.String(videoID),
 			},
 			":true": {
 				BOOL: aws.Bool(true),
@@ -183,6 +185,56 @@ func (dc *DynamoClient) UpdateJobStatus(entryID string, videoID string) error {
 	})
 	if err != nil {
 		log.Printf("Error updating job data: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) error {
+	_, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
+		TableName: aws.String("Jobs"),
+		Key: map[string]*dynamodb.AttributeValue{
+			"entryID": {
+				S: aws.String(entryID),
+			},
+		},
+		UpdateExpression:    aws.String("ADD videosAvailable :videoID"),
+		ConditionExpression: aws.String("attribute_exists(entryID)"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":videoID": {
+				SS: aws.StringSlice([]string{videoID}),
+			},
+		},
+	})
+	if err != nil {
+		log.Printf("Error updating job data: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string, requestedBy string) error {
+	videoRequestData, err := dynamodbattribute.MarshalMap(
+		VideoRequestDocument{
+			RequestKey:     fmt.Sprintf("%s:%s", entryID, requestedVideo),
+			EntryID:        entryID,
+			RequestedVideo: requestedVideo,
+			RequestedOn:    time.Now().Format("2006-01-02 15:04:05"),
+			RequestedBy:    requestedBy,
+			VideoExpiry:    int(time.Now().Add(time.Hour * 24 * 30).Unix()),
+		},
+	)
+	if err != nil {
+		log.Println("Error marshalling video request data: ", err)
+		return err
+	}
+	_, err = dc.client.PutItem(&dynamodb.PutItemInput{
+		TableName:           aws.String("VideoRequests"),
+		Item:                videoRequestData,
+		ConditionExpression: aws.String("attribute_not_exists(requestKey)"),
+	})
+	if err != nil {
+		log.Println("Error putting video request data: ", err)
 		return err
 	}
 	return nil

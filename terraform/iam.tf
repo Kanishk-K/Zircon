@@ -89,6 +89,7 @@ data "aws_iam_policy_document" "submit-dynamodb-description" {
     actions = ["dynamodb:PutItem"]
     resources = [
       aws_dynamodb_table.jobs-table.arn,
+      aws_dynamodb_table.video_requests_table.arn,
     ]
   }
   statement {
@@ -144,7 +145,7 @@ resource "aws_iam_role" "tts-role" {
   assume_role_policy = data.aws_iam_policy_document.lambda-trust-policy.json
 }
 
-data "aws_iam_policy_document" "stream-access-description" {
+data "aws_iam_policy_document" "jobs-stream-access-description" {
   statement {
     actions = ["dynamodb:GetRecords", "dynamodb:GetShardIterator", "dynamodb:DescribeStream", "dynamodb:ListStreams"]
     resources = [
@@ -153,16 +154,37 @@ data "aws_iam_policy_document" "stream-access-description" {
   }
 }
 
-resource "aws_iam_policy" "stream-access" {
-  name        = "stream-access"
+resource "aws_iam_policy" "jobs-stream-access" {
+  name        = "jobs-stream-access"
   description = "Allows the TTS lambda to access the jobs dynamodb stream"
-  policy      = data.aws_iam_policy_document.stream-access-description.json
+  policy      = data.aws_iam_policy_document.jobs-stream-access-description.json
 }
 
-resource "aws_iam_policy_attachment" "lambda-stream-access" {
-  name       = "lambda-stream-access"
-  roles      = [aws_iam_role.tts-role.name, aws_iam_role.queue-lambda.name]
-  policy_arn = aws_iam_policy.stream-access.arn
+resource "aws_iam_policy_attachment" "jobs-lambda-stream-access" {
+  name       = "jobs-lambda-stream-access"
+  roles      = [aws_iam_role.tts-role.name]
+  policy_arn = aws_iam_policy.jobs-stream-access.arn
+}
+
+data "aws_iam_policy_document" "videogen-stream-access-description" {
+  statement {
+    actions = ["dynamodb:GetRecords", "dynamodb:GetShardIterator", "dynamodb:DescribeStream", "dynamodb:ListStreams"]
+    resources = [
+      aws_dynamodb_table.video_requests_table.stream_arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "videogen-stream-access" {
+  name        = "videogen-stream-access"
+  description = "Allows the TTS lambda to access the videogen dynamodb stream"
+  policy      = data.aws_iam_policy_document.videogen-stream-access-description.json
+}
+
+resource "aws_iam_policy_attachment" "videogen-lambda-stream-access" {
+  name       = "videogen-lambda-stream-access"
+  roles      = [aws_iam_role.queue-lambda.name]
+  policy_arn = aws_iam_policy.videogen-stream-access.arn
 }
 
 data "aws_iam_policy_document" "tts-s3-description" {
@@ -285,6 +307,29 @@ resource "aws_iam_policy" "ecs-consumer-task-s3" {
 resource "aws_iam_role_policy_attachment" "ecs-consumer-task-s3-policy" {
   role       = aws_iam_role.ecs-consumer-task-role.name
   policy_arn = aws_iam_policy.ecs-consumer-task-s3.arn
+}
+
+# DEFINE the dynamodb access policy for the ECS Consumer Task Role
+data "aws_iam_policy_document" "ecs-consumer-task-dynamo" {
+  statement {
+    actions = ["dynamodb:UpdateItem"]
+    resources = [
+      aws_dynamodb_table.jobs-table.arn,
+    ]
+  }
+}
+
+# CREATE the dynamo access policy for the ECS Consumer Task Role
+resource "aws_iam_policy" "ecs-consumer-task-dynamo" {
+  name        = "lecture-analyzer-ecs-consumer-task-dynamo"
+  description = "Allows the task to access dynamo"
+  policy      = data.aws_iam_policy_document.ecs-consumer-task-dynamo.json
+}
+
+# ATTACH the dynamo access policy to the ECS Consumer Task Role
+resource "aws_iam_role_policy_attachment" "ecs-consumer-task-dynamo-policy" {
+  role       = aws_iam_role.ecs-consumer-task-role.name
+  policy_arn = aws_iam_policy.ecs-consumer-task-dynamo.arn
 }
 
 # CREATE the ECS Consumer Task Execution Role

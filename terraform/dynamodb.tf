@@ -1,13 +1,14 @@
 # This file sets up the dynamodb table to store metadata on jobs and users.
 # -> Jobs Table
+# -> Video Request Table
 # -> Users Table
 
 # CREATES a DynamoDB table to store metadata on jobs
 resource "aws_dynamodb_table" "jobs-table" {
   name             = "Jobs"
   billing_mode     = "PROVISIONED"
-  read_capacity    = 20
-  write_capacity   = 20
+  read_capacity    = 15
+  write_capacity   = 15
   hash_key         = "entryID"
   stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
@@ -57,8 +58,34 @@ resource "aws_lambda_function_event_invoke_config" "tts-noretry" {
   maximum_retry_attempts = 0
 }
 
-resource "aws_lambda_event_source_mapping" "invoke-video" {
-  event_source_arn       = aws_dynamodb_table.jobs-table.stream_arn
+# CREATES a DynamoDB table to store metadata on video requests
+resource "aws_dynamodb_table" "video_requests_table" {
+  name             = "VideoRequests"
+  billing_mode     = "PROVISIONED"
+  read_capacity    = 5
+  write_capacity   = 5
+  hash_key         = "requestKey"
+  stream_enabled   = true
+  stream_view_type = "NEW_AND_OLD_IMAGES"
+  ttl {
+    attribute_name = "videoExpiry"
+    enabled        = true
+  }
+  attribute {
+    name = "requestKey"
+    type = "S"
+  }
+  tags = {
+    Name        = "zircon-video-requests-table"
+    Environment = "prod"
+  }
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_lambda_event_source_mapping" "invoke-videogen" {
+  event_source_arn       = aws_dynamodb_table.video_requests_table.stream_arn
   function_name          = aws_lambda_function.queue-lambda.arn
   starting_position      = "LATEST"
   batch_size             = 1
@@ -66,23 +93,14 @@ resource "aws_lambda_event_source_mapping" "invoke-video" {
   maximum_retry_attempts = 0
   filter_criteria {
     filter {
-      pattern = replace(replace(jsonencode({
-        eventName = ["MODIFY"]
-        dynamodb = {
-          NewImage = {
-            # Check that numVideos is not equal to 0
-            videosAvailable = {
-              SS = [
-                { exists = true }
-              ]
-            }
-          }
-        }
-      }), "\\u003c", "<"), "\\u003e", ">")
+      pattern = jsonencode({
+        eventName = ["INSERT"]
+      })
     }
   }
 }
-resource "aws_lambda_function_event_invoke_config" "video-noretry" {
+
+resource "aws_lambda_function_event_invoke_config" "videogen-noretry" {
   function_name          = aws_lambda_function.queue-lambda.function_name
   maximum_retry_attempts = 0
 }

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	"github.com/hibiken/asynq"
 )
@@ -24,11 +25,12 @@ type VideoGenerationPayload struct {
 }
 
 type GenerateVideoProcess struct {
-	s3Client s3client.S3Methods
+	s3Client     s3client.S3Methods
+	dynamoClient dynamo.DynamoMethods
 }
 
-func NewGenerateVideoProcess(s3Client s3client.S3Methods) *GenerateVideoProcess {
-	return &GenerateVideoProcess{s3Client}
+func NewGenerateVideoProcess(s3Client s3client.S3Methods, dynamoClient dynamo.DynamoMethods) *GenerateVideoProcess {
+	return &GenerateVideoProcess{s3Client, dynamoClient}
 }
 
 func NewVideoGenerationTask(entryID string, backgroundVideo string) (*asynq.Task, error) {
@@ -169,6 +171,12 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 	}
 
 	log.Printf("Completed video for %s", payload.EntryID)
+
+	err = p.dynamoClient.AddVideoToJob(payload.EntryID, payload.BackgroundVideo)
+	if err != nil {
+		log.Printf("Failed to update job data: %v", err)
+		return err
+	}
 
 	return nil
 }

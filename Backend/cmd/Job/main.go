@@ -31,6 +31,7 @@ type JobSchedulerService struct {
 	dynamoClient dynamo.DynamoMethods
 	s3Client     s3client.S3Methods
 	LLMClient    *openai.Client
+	isProd       bool
 }
 
 var validVideoChoices = map[string]bool{
@@ -145,7 +146,7 @@ func (jss JobSchedulerService) generateSummary(transcriptData *string, entryID s
 	return nil
 }
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	resp := events.APIGatewayProxyResponse{
 		Headers: map[string]string{
 			"Content-Type":                 "application/json",
@@ -165,7 +166,78 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		apiresponse.APIErrorResponse(400, err.Error(), &resp)
 		return resp, nil
 	}
+	/*
+		Buisness logic goes here
+	*/
+	var subject string
+	if jss.isProd {
+		subject = request.RequestContext.Authorizer["sub"].(string)
+	} else {
+		subject = "DEV USER"
+	}
+	// Add the job if it doesn't exist
+	err = jss.dynamoClient.CreateJobIfNotExists(requestBody.EntryID, subject)
+	if err != nil {
+		var ccfe *dynamodb.ConditionalCheckFailedException
+		if errors.As(err, &ccfe) {
+			// Job already exists
+			log.Printf("Job already exists, updating job status should more items be added.")
+		} else {
+			// Some other error occurred
+			apiresponse.APIErrorResponse(500, "Failed to create job", &resp)
+			return resp, nil
+		}
+	} else {
+		err = jss.dynamoClient.AddScheduledJobToUser(subject, requestBody.EntryID)
+		if err != nil {
+			_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
+			apiresponse.APIErrorResponse(500, "Failed to schedule job", &resp)
+			return resp, err
+		}
 
+		transcriptString, err := downloadTranscript(requestBody.TranscriptLink)
+		if err != nil {
+			_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
+			_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
+			apiresponse.APIErrorResponse(500, "Failed to download transcript", &resp)
+			return resp, err
+		}
+
+		var errGroup errgroup.Group
+		errGroup.Go(func() error {
+			return jss.generateNotes(transcriptString, requestBody.EntryID)
+		})
+		errGroup.Go(func() error {
+			return jss.generateSummary(transcriptString, requestBody.EntryID)
+		})
+		if err := errGroup.Wait(); err != nil {
+			_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
+			_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
+			apiresponse.APIErrorResponse(500, "Failed to generate notes or summary", &resp)
+			return resp, err
+		}
+	}
+
+	// Request subtitle generation
+	err = jss.dynamoClient.GenerateSubtitles(requestBody.EntryID, requestBody.BackgroundVideo)
+	if err != nil {
+		apiresponse.APIErrorResponse(500, "Failed to update job status", &resp)
+		return resp, err
+	}
+
+	// Request video generation
+	err = jss.dynamoClient.CreateVideoRequest(requestBody.EntryID, requestBody.BackgroundVideo, subject)
+	if err != nil {
+		apiresponse.APIErrorResponse(500, "Failed to create video request", &resp)
+		return resp, err
+	}
+
+	apiresponse.APIErrorResponse(200, "Job scheduled successfully", &resp)
+
+	return resp, nil
+}
+
+func main() {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
 		region = "us-east-1"
@@ -187,74 +259,8 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		s3Client:     s3Client,
 		LLMClient:    LLMClient,
 	}
-	/*
-		Buisness logic goes here
-	*/
-	subject := request.RequestContext.Authorizer["sub"].(string)
-	// Add the job if it doesn't exist
-	err = jss.dynamoClient.CreateJobIfNotExists(requestBody.EntryID, subject)
-	if err != nil {
-		var ccfe *dynamodb.ConditionalCheckFailedException
-		if errors.As(err, &ccfe) {
-			// Job already exists OR user has exceeded the permitted number of jobs
-			// Try to update the job, if it fails then the user has exceeded the permitted number of jobs
-			log.Printf("Job already exists, updating job status should more items be added.")
-			subErr := jss.dynamoClient.UpdateJobStatus(requestBody.EntryID, requestBody.BackgroundVideo)
-			if subErr != nil {
-				apiresponse.APIErrorResponse(500, "Failed to update job", &resp)
-				return resp, nil
-			}
-			apiresponse.APIErrorResponse(200, "Updated Job Entry", &resp)
-			return resp, nil
-		} else {
-			// Some other error occurred
-			apiresponse.APIErrorResponse(500, "Failed to create job", &resp)
-			return resp, nil
-		}
-	}
-	err = jss.dynamoClient.AddScheduledJobToUser(subject, requestBody.EntryID)
-	if err != nil {
-		_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
-		apiresponse.APIErrorResponse(500, "Failed to schedule job", &resp)
-		return resp, err
-	}
 
-	transcriptString, err := downloadTranscript(requestBody.TranscriptLink)
-	if err != nil {
-		_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
-		_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to download transcript", &resp)
-		return resp, err
-	}
+	jss.isProd = os.Getenv("AWS_SAM_LOCAL") != "true"
 
-	var errGroup errgroup.Group
-	errGroup.Go(func() error {
-		return jss.generateNotes(transcriptString, requestBody.EntryID)
-	})
-	errGroup.Go(func() error {
-		return jss.generateSummary(transcriptString, requestBody.EntryID)
-	})
-	if err := errGroup.Wait(); err != nil {
-		_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
-		_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to generate notes or summary", &resp)
-		return resp, err
-	}
-
-	// Update job to queue for further processing
-	err = jss.dynamoClient.UpdateJobStatus(requestBody.EntryID, requestBody.BackgroundVideo)
-	if err != nil {
-		_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
-		_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
-		apiresponse.APIErrorResponse(500, "Failed to update job status", &resp)
-		return resp, err
-	}
-
-	apiresponse.APIErrorResponse(200, "Job scheduled successfully", &resp)
-
-	return resp, nil
-}
-
-func main() {
-	lambda.Start(handler)
+	lambda.Start(jss.handler)
 }

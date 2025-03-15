@@ -15,3 +15,12 @@ type JobDocument struct {
 	SubtitlesGenerated bool     `dynamodbav:"subtitlesGenerated"`
 	VideosAvailable    []string `dynamodbav:"videosAvailable,stringset,omitempty"`
 }
+
+type VideoRequestDocument struct {
+	RequestKey     string `dynamodbav:"requestKey"`
+	EntryID        string `dynamodbav:"entryID"`
+	RequestedVideo string `dynamodbav:"requestedVideo"`
+	RequestedOn    string `dynamodbav:"requestedOn"`
+	RequestedBy    string `dynamodbav:"requestedBy"`
+	VideoExpiry    int    `dynamodbav:"videoExpiry"`
+}
