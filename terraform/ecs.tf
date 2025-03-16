@@ -110,6 +110,10 @@ resource "aws_ecs_task_definition" "ecs-consumer-task-definition" {
       {
         name  = "REDIS_URL"
         value = "${aws_elasticache_replication_group.task-queue.primary_endpoint_address}:6379"
+      },
+      {
+        name  = "DOMAIN"
+        value = var.DOMAIN
       }
     ]
   }])

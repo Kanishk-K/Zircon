@@ -332,6 +332,27 @@ resource "aws_iam_role_policy_attachment" "ecs-consumer-task-dynamo-policy" {
   policy_arn = aws_iam_policy.ecs-consumer-task-dynamo.arn
 }
 
+# DEFINE the sesv2 access policy for the ECS Consumer Task Role
+data "aws_iam_policy_document" "ecs-consumer-task-sesv2" {
+  statement {
+    actions   = ["ses:SendTemplatedEmail"]
+    resources = ["*"]
+  }
+}
+
+# CREATE the sesv2 access policy for the ECS Consumer Task Role
+resource "aws_iam_policy" "ecs-consumer-task-sesv2" {
+  name        = "lecture-analyzer-ecs-consumer-task-sesv2"
+  description = "Allows the task to access SES"
+  policy      = data.aws_iam_policy_document.ecs-consumer-task-sesv2.json
+}
+
+# ATTACH the sesv2 access policy to the ECS Consumer Task Role
+resource "aws_iam_role_policy_attachment" "ecs-consumer-task-sesv2-policy" {
+  role       = aws_iam_role.ecs-consumer-task-role.name
+  policy_arn = aws_iam_policy.ecs-consumer-task-sesv2.arn
+}
+
 # CREATE the ECS Consumer Task Execution Role
 resource "aws_iam_role" "ecs-consumer-task-execution-role" {
   name               = "lecture-analyzer-ecs-consumer-task-execution-role"

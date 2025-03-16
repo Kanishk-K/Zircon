@@ -17,10 +17,10 @@ type DynamoMethods interface {
 	DeregisterJobFromUser(userID string, entryID string) error
 
 	// Job modification methods
-	CreateJobIfNotExists(entryID string, generatedBy string) error
+	CreateJobIfNotExists(entryID string, title string, generatedBy string) error
 	DeleteJobByUser(entryID string, userID string) error
 	GenerateSubtitles(entryID string, videoID string) error
-	AddVideoToJob(entryID string, videoID string) error
+	AddVideoToJob(entryID string, videoID string) (*dynamodb.UpdateItemOutput, error)
 
 	// Video request methods
 	CreateVideoRequest(entityID string, requestedVideo string, requestedBy string) error
@@ -112,10 +112,11 @@ func (dc *DynamoClient) DeregisterJobFromUser(userID string, entryID string) err
 	return nil
 }
 
-func (dc *DynamoClient) CreateJobIfNotExists(entryID string, generatedBy string) error {
+func (dc *DynamoClient) CreateJobIfNotExists(entryID string, title string, generatedBy string) error {
 	jobData, err := dynamodbattribute.MarshalMap(
 		JobDocument{
 			EntryID:            entryID,
+			Title:              title,
 			GeneratedOn:        time.Now().Format("2006-01-02 15:04:05"),
 			GeneratedBy:        generatedBy,
 			SubtitlesGenerated: false,
@@ -186,8 +187,8 @@ func (dc *DynamoClient) GenerateSubtitles(entryID string, videoID string) error 
 	return nil
 }
 
-func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) error {
-	_, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
+func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) (*dynamodb.UpdateItemOutput, error) {
+	update, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
 		TableName: aws.String("Jobs"),
 		Key: map[string]*dynamodb.AttributeValue{
 			"entryID": {
@@ -201,12 +202,13 @@ func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) error {
 				SS: aws.StringSlice([]string{videoID}),
 			},
 		},
+		ReturnValues: aws.String("ALL_NEW"),
 	})
 	if err != nil {
 		log.Printf("Error updating job data: %v", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return update, nil
 }
 
 func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string, requestedBy string) error {

@@ -6,6 +6,7 @@ import (
 
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
+	sesclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/sesClient"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -39,8 +40,9 @@ func main() {
 	}))
 	s3Client := s3client.NewS3Client(awsSession)
 	dynamoClient := dynamo.NewDynamoClient(awsSession)
+	sesClient := sesclient.NewSESClient(awsSession)
 
-	vg := tasks.NewGenerateVideoProcess(s3Client, dynamoClient)
+	vg := tasks.NewGenerateVideoProcess(s3Client, dynamoClient, sesClient)
 
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.VideoGenerationTask, vg.HandleVideoGenerationTask)

@@ -176,7 +176,7 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 		subject = "DEV USER"
 	}
 	// Add the job if it doesn't exist
-	err = jss.dynamoClient.CreateJobIfNotExists(requestBody.EntryID, subject)
+	err = jss.dynamoClient.CreateJobIfNotExists(requestBody.EntryID, requestBody.Title, subject)
 	if err != nil {
 		var ccfe *dynamodb.ConditionalCheckFailedException
 		if errors.As(err, &ccfe) {

@@ -82,4 +82,5 @@ resource "aws_cloudfront_distribution" "web_routing" {
     Name        = "lecture-analyzer-s3-distribution"
     Environment = "prod"
   }
+  depends_on = [aws_acm_certificate.ssl_cert]
 }

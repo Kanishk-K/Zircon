@@ -13,6 +13,7 @@ services:
       - redis
     environment:
       - REDIS_URL=redis:6379
+      - DOMAIN=zircon.socialcoding.net
     volumes:
       # Mount the AWS credentials file to the container
       - ~/.aws:/root/.aws

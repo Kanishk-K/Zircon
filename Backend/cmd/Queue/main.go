@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 	"github.com/aws/aws-lambda-go/events"
@@ -28,6 +27,7 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 	// Print the request for debugging
 	entryID := request.Records[0].Change.NewImage["entryID"].String()
 	backgroundVideo := request.Records[0].Change.NewImage["requestedVideo"].String()
+	requestedBy := request.Records[0].Change.NewImage["requestedBy"].String()
 	if entryID == "" || backgroundVideo == "" {
 		log.Printf("EntryID or background video is empty")
 		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{
@@ -56,7 +56,7 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 	log.Printf("Background video: %s\n", backgroundVideo)
 	log.Printf("Priority: %s\n", priority)
 	qs := QueueService{jobQueue: client}
-	task, err := tasks.NewVideoGenerationTask(entryID, backgroundVideo)
+	task, err := tasks.NewVideoGenerationTask(entryID, requestedBy, backgroundVideo)
 	if err != nil {
 		log.Printf("Could not create the task: %s\n", err)
 		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{
@@ -70,9 +70,9 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 		task,
 		priority,
 		asynq.MaxRetry(0),
-		asynq.TaskID(fmt.Sprintf("%s:%s", entryID, backgroundVideo)),
-		asynq.Unique(time.Hour*24),
-		asynq.Retention(time.Hour*24*7),
+		// asynq.TaskID(fmt.Sprintf("%s:%s", entryID, backgroundVideo)),
+		// asynq.Unique(time.Hour*24),
+		// asynq.Retention(time.Hour*24*7),
 	)
 	if err != nil {
 		log.Printf("Could not enqueue the task: %s\n", err)

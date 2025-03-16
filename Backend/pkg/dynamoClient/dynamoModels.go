@@ -10,6 +10,7 @@ type UserDocument struct {
 
 type JobDocument struct {
 	EntryID            string   `dynamodbav:"entryID"`
+	Title              string   `dynamodbav:"title"`
 	GeneratedOn        string   `dynamodbav:"generatedOn"`
 	GeneratedBy        string   `dynamodbav:"generatedBy"`
 	SubtitlesGenerated bool     `dynamodbav:"subtitlesGenerated"`

@@ -13,6 +13,7 @@ import (
 
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
+	sesclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/sesClient"
 	"github.com/hibiken/asynq"
 )
 
@@ -21,21 +22,24 @@ const VideoGenerationTask = "videoGeneration"
 
 type VideoGenerationPayload struct {
 	EntryID         string `json:"entryID"`
+	RequestedBy     string `json:"requestedBy"`
 	BackgroundVideo string `json:"backgroundVideo"`
 }
 
 type GenerateVideoProcess struct {
 	s3Client     s3client.S3Methods
 	dynamoClient dynamo.DynamoMethods
+	sesClient    sesclient.SESMethods
 }
 
-func NewGenerateVideoProcess(s3Client s3client.S3Methods, dynamoClient dynamo.DynamoMethods) *GenerateVideoProcess {
-	return &GenerateVideoProcess{s3Client, dynamoClient}
+func NewGenerateVideoProcess(s3Client s3client.S3Methods, dynamoClient dynamo.DynamoMethods, sesClient sesclient.SESMethods) *GenerateVideoProcess {
+	return &GenerateVideoProcess{s3Client, dynamoClient, sesClient}
 }
 
-func NewVideoGenerationTask(entryID string, backgroundVideo string) (*asynq.Task, error) {
+func NewVideoGenerationTask(entryID string, requestedBy string, backgroundVideo string) (*asynq.Task, error) {
 	taskInfo := VideoGenerationPayload{
 		EntryID:         entryID,
+		RequestedBy:     requestedBy,
 		BackgroundVideo: backgroundVideo,
 	}
 	payload, err := json.Marshal(taskInfo)
@@ -172,9 +176,20 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 
 	log.Printf("Completed video for %s", payload.EntryID)
 
-	err = p.dynamoClient.AddVideoToJob(payload.EntryID, payload.BackgroundVideo)
+	updated, err := p.dynamoClient.AddVideoToJob(payload.EntryID, payload.BackgroundVideo)
 	if err != nil {
 		log.Printf("Failed to update job data: %v", err)
+		return err
+	}
+
+	err = p.sesClient.SendEmail(
+		payload.RequestedBy,
+		*updated.Attributes["title"].S,
+		payload.EntryID,
+		payload.BackgroundVideo,
+	)
+	if err != nil {
+		log.Printf("Failed to send email: %v", err)
 		return err
 	}
 
