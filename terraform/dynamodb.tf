@@ -64,7 +64,8 @@ resource "aws_dynamodb_table" "video_requests_table" {
   billing_mode     = "PROVISIONED"
   read_capacity    = 5
   write_capacity   = 5
-  hash_key         = "requestKey"
+  hash_key         = "entryID"
+  range_key        = "requestedVideo"
   stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
   ttl {
@@ -72,7 +73,11 @@ resource "aws_dynamodb_table" "video_requests_table" {
     enabled        = true
   }
   attribute {
-    name = "requestKey"
+    name = "entryID"
+    type = "S"
+  }
+  attribute {
+    name = "requestedVideo"
     type = "S"
   }
   tags = {

@@ -17,7 +17,6 @@ type JobDocument struct {
 }
 
 type VideoRequestDocument struct {
-	RequestKey     string `dynamodbav:"requestKey"`
 	EntryID        string `dynamodbav:"entryID"`
 	RequestedVideo string `dynamodbav:"requestedVideo"`
 	RequestedOn    string `dynamodbav:"requestedOn"`

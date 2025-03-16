@@ -1,7 +1,6 @@
 package dynamo
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -172,12 +171,9 @@ func (dc *DynamoClient) GenerateSubtitles(entryID string, videoID string) error 
 				S: aws.String(entryID),
 			},
 		},
-		UpdateExpression:    aws.String("ADD videosAvailable :videoID SET subtitlesGenerated = :true"),
+		UpdateExpression:    aws.String("SET subtitlesGenerated = :true"),
 		ConditionExpression: aws.String("attribute_exists(entryID)"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":videoID": {
-				SS: aws.StringSlice([]string{videoID}),
-			},
 			":true": {
 				BOOL: aws.Bool(true),
 			},
@@ -216,7 +212,6 @@ func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) error {
 func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string, requestedBy string) error {
 	videoRequestData, err := dynamodbattribute.MarshalMap(
 		VideoRequestDocument{
-			RequestKey:     fmt.Sprintf("%s:%s", entryID, requestedVideo),
 			EntryID:        entryID,
 			RequestedVideo: requestedVideo,
 			RequestedOn:    time.Now().Format("2006-01-02 15:04:05"),
@@ -231,7 +226,7 @@ func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string
 	_, err = dc.client.PutItem(&dynamodb.PutItemInput{
 		TableName:           aws.String("VideoRequests"),
 		Item:                videoRequestData,
-		ConditionExpression: aws.String("attribute_not_exists(requestKey)"),
+		ConditionExpression: aws.String("attribute_not_exists(entryID) AND attribute_not_exists(requestedVideo)"),
 	})
 	if err != nil {
 		log.Println("Error putting video request data: ", err)
