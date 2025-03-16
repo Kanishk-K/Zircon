@@ -23,7 +23,8 @@ type DynamoMethods interface {
 	AddVideoToJob(entryID string, videoID string) (*dynamodb.UpdateItemOutput, error)
 
 	// Video request methods
-	CreateVideoRequest(entityID string, requestedVideo string, requestedBy string) error
+	CreateVideoRequest(entryID string, requestedVideo string, requestedBy string) error
+	EntityVideoNumber(entryID string) (int, error)
 }
 
 type DynamoClient struct {
@@ -235,4 +236,25 @@ func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string
 		return err
 	}
 	return nil
+}
+
+func (dc *DynamoClient) EntityVideoNumber(entryID string) (int, error) {
+	result, err := dc.client.Query(&dynamodb.QueryInput{
+		TableName: aws.String("VideoRequests"),
+		KeyConditions: map[string]*dynamodb.Condition{
+			"entryID": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{
+						S: aws.String(entryID),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		log.Println("Error scanning video requests: ", err)
+		return 0, err
+	}
+	return len(result.Items), nil
 }

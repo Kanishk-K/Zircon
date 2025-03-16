@@ -5,14 +5,18 @@ import (
 	"log"
 	"os"
 
+	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/hibiken/asynq"
 )
 
 type QueueService struct {
-	jobQueue *asynq.Client
+	jobQueue     *asynq.Client
+	dynamoClient dynamo.DynamoMethods
 }
 
 /*
@@ -22,7 +26,12 @@ This path should be protected by the following dynamodb filter:
 }
 */
 
-func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error) {
+func (qs QueueService) getPriority(EntryID string) asynq.Option {
+	// Get the priority of the task based on the entryID
+	return asynq.Queue("low")
+}
+
+func (qs QueueService) handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error) {
 	resp := events.DynamoDBEventResponse{}
 	// Print the request for debugging
 	entryID := request.Records[0].Change.NewImage["entryID"].String()
@@ -37,25 +46,12 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 		}
 		return resp, fmt.Errorf("entryID or background video is empty")
 	}
-	priority := asynq.Queue("low")
+	priority := qs.getPriority(entryID)
 	log.Printf("Processing request for entryID: %s\n", entryID)
 	log.Printf("Request: %v\n", request.Records[0])
 
-	// Initialize the service
-	client := asynq.NewClient(asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")})
-	if client == nil {
-		log.Printf("Could not connect to Redis")
-		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{
-			{
-				ItemIdentifier: request.Records[0].EventID,
-			},
-		}
-		return resp, fmt.Errorf("could not connect to Redis")
-	}
-	defer client.Close()
 	log.Printf("Background video: %s\n", backgroundVideo)
 	log.Printf("Priority: %s\n", priority)
-	qs := QueueService{jobQueue: client}
 	task, err := tasks.NewVideoGenerationTask(entryID, requestedBy, backgroundVideo)
 	if err != nil {
 		log.Printf("Could not create the task: %s\n", err)
@@ -88,5 +84,25 @@ func handler(request events.DynamoDBEvent) (events.DynamoDBEventResponse, error)
 }
 
 func main() {
-	lambda.Start(handler)
+	// Initialize the service
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			Region: aws.String(region),
+		},
+	}))
+	dynamoClient := dynamo.NewDynamoClient(awsSession)
+	client := asynq.NewClient(asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")})
+	if client == nil {
+		log.Printf("Could not connect to Redis")
+		return
+	}
+	defer client.Close()
+	qs := QueueService{jobQueue: client, dynamoClient: dynamoClient}
+	lambda.Start(qs.handler)
 }
