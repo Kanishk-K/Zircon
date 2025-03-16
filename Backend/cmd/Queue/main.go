@@ -4,19 +4,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
-	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/hibiken/asynq"
 )
 
 type QueueService struct {
-	jobQueue     *asynq.Client
-	dynamoClient dynamo.DynamoMethods
+	jobQueue *asynq.Client
 }
 
 /*
@@ -66,9 +63,9 @@ func (qs QueueService) handler(request events.DynamoDBEvent) (events.DynamoDBEve
 		task,
 		priority,
 		asynq.MaxRetry(0),
-		// asynq.TaskID(fmt.Sprintf("%s:%s", entryID, backgroundVideo)),
-		// asynq.Unique(time.Hour*24),
-		// asynq.Retention(time.Hour*24*7),
+		asynq.TaskID(fmt.Sprintf("%s:%s", entryID, backgroundVideo)),
+		asynq.Unique(time.Hour*24),
+		asynq.Retention(time.Hour*24*7),
 	)
 	if err != nil {
 		log.Printf("Could not enqueue the task: %s\n", err)
@@ -85,24 +82,12 @@ func (qs QueueService) handler(request events.DynamoDBEvent) (events.DynamoDBEve
 
 func main() {
 	// Initialize the service
-	region := os.Getenv("AWS_REGION")
-	if region == "" {
-		region = "us-east-1"
-	}
-
-	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{
-			Region: aws.String(region),
-		},
-	}))
-	dynamoClient := dynamo.NewDynamoClient(awsSession)
 	client := asynq.NewClient(asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")})
 	if client == nil {
 		log.Printf("Could not connect to Redis")
 		return
 	}
 	defer client.Close()
-	qs := QueueService{jobQueue: client, dynamoClient: dynamoClient}
+	qs := QueueService{jobQueue: client}
 	lambda.Start(qs.handler)
 }

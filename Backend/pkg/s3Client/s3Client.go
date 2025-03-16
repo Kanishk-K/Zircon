@@ -1,11 +1,11 @@
 package s3client
 
 import (
+	"context"
 	"io"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type S3Methods interface {
@@ -14,17 +14,17 @@ type S3Methods interface {
 }
 
 type S3Client struct {
-	client *s3.S3
+	client *s3.Client
 }
 
-func NewS3Client(awsSession *session.Session) S3Methods {
+func NewS3Client(awsSession aws.Config) S3Methods {
 	return &S3Client{
-		client: s3.New(awsSession),
+		client: s3.NewFromConfig(awsSession),
 	}
 }
 
 func (sc *S3Client) UploadFile(bucket string, key string, file io.ReadSeeker, filetype string) error {
-	_, err := sc.client.PutObject(&s3.PutObjectInput{
+	_, err := sc.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
 		ContentType: aws.String(filetype),
@@ -37,7 +37,7 @@ func (sc *S3Client) UploadFile(bucket string, key string, file io.ReadSeeker, fi
 }
 
 func (sc *S3Client) ReadFile(bucket string, key string) (io.ReadCloser, error) {
-	resp, err := sc.client.GetObject(&s3.GetObjectInput{
+	resp, err := sc.client.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})

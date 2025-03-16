@@ -14,6 +14,7 @@ import (
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	sesclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/sesClient"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/hibiken/asynq"
 )
 
@@ -184,7 +185,7 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 
 	err = p.sesClient.SendEmail(
 		payload.RequestedBy,
-		*updated.Attributes["title"].S,
+		updated.Attributes["title"].(*types.AttributeValueMemberS).Value,
 		payload.EntryID,
 		payload.BackgroundVideo,
 	)

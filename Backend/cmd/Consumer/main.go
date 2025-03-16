@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 
@@ -8,8 +11,8 @@ import (
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	sesclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/sesClient"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/hibiken/asynq"
 )
 
@@ -24,6 +27,10 @@ func main() {
 				"low":    1,
 			},
 			StrictPriority: true,
+			IsFailure: func(err error) bool {
+				var nsk *types.NoSuchKey
+				return !errors.As(err, &nsk)
+			},
 		},
 	)
 	// Initialize the service
@@ -32,12 +39,14 @@ func main() {
 		region = "us-east-1"
 	}
 
-	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{
-			Region: aws.String(region),
-		},
-	}))
+	awsSession, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion(region),
+	)
+	if err != nil {
+		fmt.Println("Failed to load AWS configuration:", err)
+		return
+	}
 	s3Client := s3client.NewS3Client(awsSession)
 	dynamoClient := dynamo.NewDynamoClient(awsSession)
 	sesClient := sesclient.NewSESClient(awsSession)

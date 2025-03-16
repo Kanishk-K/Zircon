@@ -1,13 +1,14 @@
 package sesclient
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -17,30 +18,34 @@ type SESMethods interface {
 }
 
 type SESClient struct {
-	client *ses.SES
+	client *sesv2.Client
 	domain string
 }
 
-func NewSESClient(awsSession *session.Session) SESMethods {
+func NewSESClient(awsSession aws.Config) SESMethods {
 	return &SESClient{
-		client: ses.New(awsSession),
+		client: sesv2.NewFromConfig(awsSession),
 		domain: os.Getenv("DOMAIN"),
 	}
 }
 
 func (sc *SESClient) SendEmail(to string, subject string, entryID string, backgroundVideo string) error {
 	caser := cases.Title(language.English)
-	emailInput := &ses.SendTemplatedEmailInput{
-		Destination: &ses.Destination{
-			ToAddresses: []*string{
-				aws.String(fmt.Sprintf("%s@umn.edu", to)),
+	emailInput := &sesv2.SendEmailInput{
+		Destination: &types.Destination{
+			ToAddresses: []string{
+				fmt.Sprintf("%s@umn.edu", to),
 			},
 		},
-		Template:     aws.String("zircon_job_complete_template"),
-		TemplateData: aws.String(fmt.Sprintf(`{ "Subject": "%s", "BackgroundVideo": "%s"}`, subject, caser.String(backgroundVideo))),
-		Source:       aws.String(fmt.Sprintf("Zircon <noreply@%s>", sc.domain)),
+		FromEmailAddress: aws.String(fmt.Sprintf("Zircon <noreply@%s>", sc.domain)),
+		Content: &types.EmailContent{
+			Template: &types.Template{
+				TemplateName: aws.String("zircon_job_complete_template"),
+				TemplateData: aws.String(fmt.Sprintf(`{ "Subject": "%s", "BackgroundVideo": "%s"}`, subject, caser.String(backgroundVideo))),
+			},
+		},
 	}
-	_, err := sc.client.SendTemplatedEmail(emailInput)
+	_, err := sc.client.SendEmail(context.Background(), emailInput)
 	if err != nil {
 		log.Printf("Error sending email: %v", err)
 		return err

@@ -12,6 +12,10 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+type LoginService struct {
+	GoogleOauthConfig *oauth2.Config
+}
+
 func GenerateStateOAuthCookie() string {
 	b := make([]byte, 16)
 	rand.Read(b)
@@ -20,7 +24,7 @@ func GenerateStateOAuthCookie() string {
 	return state
 }
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (ls LoginService) handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	resp := events.APIGatewayProxyResponse{
 		Headers: map[string]string{
 			"Content-Type":                 "application/json",
@@ -35,6 +39,15 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	*/
 
 	// Get the PORT from environment variables
+
+	oauthState := GenerateStateOAuthCookie()
+	authURL := ls.GoogleOauthConfig.AuthCodeURL(oauthState, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	resp.StatusCode = 302
+	resp.Headers["Location"] = authURL
+	return resp, nil
+}
+
+func main() {
 	host := os.Getenv("HOST")
 	port := ""
 	if host == "" {
@@ -54,14 +67,8 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		},
 		Endpoint: google.Endpoint,
 	}
-
-	oauthState := GenerateStateOAuthCookie()
-	authURL := GoogleOauthConfig.AuthCodeURL(oauthState, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
-	resp.StatusCode = 302
-	resp.Headers["Location"] = authURL
-	return resp, nil
-}
-
-func main() {
-	lambda.Start(handler)
+	ls := LoginService{
+		GoogleOauthConfig: GoogleOauthConfig,
+	}
+	lambda.Start(ls.handler)
 }

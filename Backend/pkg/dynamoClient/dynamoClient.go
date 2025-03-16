@@ -1,13 +1,14 @@
 package dynamo
 
 import (
+	"context"
 	"log"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type DynamoMethods interface {
@@ -28,17 +29,17 @@ type DynamoMethods interface {
 }
 
 type DynamoClient struct {
-	client *dynamodb.DynamoDB
+	client *dynamodb.Client
 }
 
-func NewDynamoClient(awsSession *session.Session) DynamoMethods {
+func NewDynamoClient(awsSession aws.Config) DynamoMethods {
 	return &DynamoClient{
-		client: dynamodb.New(awsSession),
+		client: dynamodb.NewFromConfig(awsSession),
 	}
 }
 
 func (dc *DynamoClient) CreateUserIfNotExists(userID string, name string) error {
-	userData, err := dynamodbattribute.MarshalMap(
+	userData, err := attributevalue.MarshalMap(
 		UserDocument{
 			UserID:               userID,
 			Name:                 name,
@@ -51,7 +52,7 @@ func (dc *DynamoClient) CreateUserIfNotExists(userID string, name string) error 
 		log.Println("Error marshalling user data: ", err)
 		return err
 	}
-	_, err = dc.client.PutItem(&dynamodb.PutItemInput{
+	_, err = dc.client.PutItem(context.Background(), &dynamodb.PutItemInput{
 		TableName:           aws.String("Users"),
 		Item:                userData,
 		ConditionExpression: aws.String("attribute_not_exists(userID)"),
@@ -64,22 +65,21 @@ func (dc *DynamoClient) CreateUserIfNotExists(userID string, name string) error 
 }
 
 func (dc *DynamoClient) AddScheduledJobToUser(userID string, entryID string) error {
-	_, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
+	_, err := dc.client.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
 		TableName: aws.String("Users"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"userID": {
-				S: aws.String(userID),
+		Key: map[string]types.AttributeValue{
+			"userID": &types.AttributeValueMemberS{
+				Value: userID,
 			},
 		},
 		UpdateExpression:    aws.String("ADD scheduledJobs :entryID"),
 		ConditionExpression: aws.String("(attribute_not_exists(scheduledJobs) AND permittedGenerations > :zero) OR size(scheduledJobs) < permittedGenerations"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":entryID": {
-				SS: aws.StringSlice([]string{entryID}),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":entryID": &types.AttributeValueMemberSS{
+				Value: []string{entryID},
 			},
-			":zero": {
-				// Prescedence rules in condition expressions ensures that OR does not take precedence
-				N: aws.String("0"),
+			":zero": &types.AttributeValueMemberN{
+				Value: "0",
 			},
 		},
 	})
@@ -91,18 +91,18 @@ func (dc *DynamoClient) AddScheduledJobToUser(userID string, entryID string) err
 }
 
 func (dc *DynamoClient) DeregisterJobFromUser(userID string, entryID string) error {
-	_, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
+	_, err := dc.client.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
 		TableName: aws.String("Users"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"userID": {
-				S: aws.String(userID),
+		Key: map[string]types.AttributeValue{
+			"userID": &types.AttributeValueMemberS{
+				Value: userID,
 			},
 		},
 		UpdateExpression:    aws.String("DELETE scheduledJobs :entryID"),
 		ConditionExpression: aws.String("attribute_exists(scheduledJobs)"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":entryID": {
-				SS: aws.StringSlice([]string{entryID}),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":entryID": &types.AttributeValueMemberSS{
+				Value: []string{entryID},
 			},
 		},
 	})
@@ -114,7 +114,7 @@ func (dc *DynamoClient) DeregisterJobFromUser(userID string, entryID string) err
 }
 
 func (dc *DynamoClient) CreateJobIfNotExists(entryID string, title string, generatedBy string) error {
-	jobData, err := dynamodbattribute.MarshalMap(
+	jobData, err := attributevalue.MarshalMap(
 		JobDocument{
 			EntryID:            entryID,
 			Title:              title,
@@ -128,7 +128,7 @@ func (dc *DynamoClient) CreateJobIfNotExists(entryID string, title string, gener
 		log.Println("Error marshalling job data: ", err)
 		return err
 	}
-	_, err = dc.client.PutItem(&dynamodb.PutItemInput{
+	_, err = dc.client.PutItem(context.Background(), &dynamodb.PutItemInput{
 		TableName:           aws.String("Jobs"),
 		Item:                jobData,
 		ConditionExpression: aws.String("attribute_not_exists(entryID)"),
@@ -141,17 +141,17 @@ func (dc *DynamoClient) CreateJobIfNotExists(entryID string, title string, gener
 }
 
 func (dc *DynamoClient) DeleteJobByUser(entryID string, userID string) error {
-	_, err := dc.client.DeleteItem(&dynamodb.DeleteItemInput{
+	_, err := dc.client.DeleteItem(context.Background(), &dynamodb.DeleteItemInput{
 		TableName: aws.String("Jobs"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"entryID": {
-				S: aws.String(entryID),
+		Key: map[string]types.AttributeValue{
+			"entryID": &types.AttributeValueMemberS{
+				Value: entryID,
 			},
 		},
 		ConditionExpression: aws.String("generatedBy = :userID"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":userID": {
-				S: aws.String(userID),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":userID": &types.AttributeValueMemberS{
+				Value: userID,
 			},
 		},
 	})
@@ -166,18 +166,18 @@ func (dc *DynamoClient) GenerateSubtitles(entryID string, videoID string) error 
 	if videoID == "" {
 		return nil
 	}
-	_, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
+	_, err := dc.client.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
 		TableName: aws.String("Jobs"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"entryID": {
-				S: aws.String(entryID),
+		Key: map[string]types.AttributeValue{
+			"entryID": &types.AttributeValueMemberS{
+				Value: entryID,
 			},
 		},
 		UpdateExpression:    aws.String("SET subtitlesGenerated = :true"),
 		ConditionExpression: aws.String("attribute_exists(entryID)"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":true": {
-				BOOL: aws.Bool(true),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":true": &types.AttributeValueMemberBOOL{
+				Value: true,
 			},
 		},
 	})
@@ -189,21 +189,21 @@ func (dc *DynamoClient) GenerateSubtitles(entryID string, videoID string) error 
 }
 
 func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) (*dynamodb.UpdateItemOutput, error) {
-	update, err := dc.client.UpdateItem(&dynamodb.UpdateItemInput{
+	update, err := dc.client.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
 		TableName: aws.String("Jobs"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"entryID": {
-				S: aws.String(entryID),
+		Key: map[string]types.AttributeValue{
+			"entryID": &types.AttributeValueMemberS{
+				Value: entryID,
 			},
 		},
 		UpdateExpression:    aws.String("ADD videosAvailable :videoID"),
 		ConditionExpression: aws.String("attribute_exists(entryID)"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":videoID": {
-				SS: aws.StringSlice([]string{videoID}),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":videoID": &types.AttributeValueMemberSS{
+				Value: []string{videoID},
 			},
 		},
-		ReturnValues: aws.String("ALL_NEW"),
+		ReturnValues: types.ReturnValueAllNew,
 	})
 	if err != nil {
 		log.Printf("Error updating job data: %v", err)
@@ -213,7 +213,7 @@ func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) (*dynamodb
 }
 
 func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string, requestedBy string) error {
-	videoRequestData, err := dynamodbattribute.MarshalMap(
+	videoRequestData, err := attributevalue.MarshalMap(
 		VideoRequestDocument{
 			EntryID:        entryID,
 			RequestedVideo: requestedVideo,
@@ -226,7 +226,7 @@ func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string
 		log.Println("Error marshalling video request data: ", err)
 		return err
 	}
-	_, err = dc.client.PutItem(&dynamodb.PutItemInput{
+	_, err = dc.client.PutItem(context.Background(), &dynamodb.PutItemInput{
 		TableName:           aws.String("VideoRequests"),
 		Item:                videoRequestData,
 		ConditionExpression: aws.String("attribute_not_exists(entryID) AND attribute_not_exists(requestedVideo)"),
@@ -239,14 +239,14 @@ func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string
 }
 
 func (dc *DynamoClient) EntityVideoNumber(entryID string) (int, error) {
-	result, err := dc.client.Query(&dynamodb.QueryInput{
+	result, err := dc.client.Query(context.Background(), &dynamodb.QueryInput{
 		TableName: aws.String("VideoRequests"),
-		KeyConditions: map[string]*dynamodb.Condition{
+		KeyConditions: map[string]types.Condition{
 			"entryID": {
-				ComparisonOperator: aws.String("EQ"),
-				AttributeValueList: []*dynamodb.AttributeValue{
-					{
-						S: aws.String(entryID),
+				ComparisonOperator: types.ComparisonOperatorEq,
+				AttributeValueList: []types.AttributeValue{
+					&types.AttributeValueMemberS{
+						Value: entryID,
 					},
 				},
 			},

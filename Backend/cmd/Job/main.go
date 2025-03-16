@@ -18,9 +18,8 @@ import (
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/openai/openai-go"
 	"golang.org/x/sync/errgroup"
 )
@@ -178,7 +177,7 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 	// Add the job if it doesn't exist
 	err = jss.dynamoClient.CreateJobIfNotExists(requestBody.EntryID, requestBody.Title, subject)
 	if err != nil {
-		var ccfe *dynamodb.ConditionalCheckFailedException
+		var ccfe *types.ConditionalCheckFailedException
 		if errors.As(err, &ccfe) {
 			// Job already exists
 			log.Printf("Job already exists, updating job status should more items be added.")
@@ -243,12 +242,14 @@ func main() {
 		region = "us-east-1"
 	}
 
-	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{
-			Region: aws.String(region),
-		},
-	}))
+	awsSession, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion(region),
+	)
+	if err != nil {
+		fmt.Println("Failed to load AWS configuration:", err)
+		return
+	}
 	dynamoClient := dynamo.NewDynamoClient(awsSession)
 	s3Client := s3client.NewS3Client(awsSession)
 

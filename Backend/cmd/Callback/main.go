@@ -14,9 +14,8 @@ import (
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -49,7 +48,7 @@ func (cs *CallbackService) GetUserDataFromGoogle(codeValue string) (*authutil.Pr
 	return &responseData, nil
 }
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (cbs CallbackService) handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	resp := events.APIGatewayProxyResponse{
 		Headers: map[string]string{
 			"Content-Type":                 "application/json",
@@ -63,6 +62,39 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		Buisness logic goes here
 	*/
 
+	profile, err := cbs.GetUserDataFromGoogle(request.QueryStringParameters["code"])
+	if err != nil {
+		apiresponse.APIErrorResponse(500, "Failed to process callback, please try again.", &resp)
+		return resp, err
+	}
+	if profile.OrganizationDomain != "umn.edu" {
+		apiresponse.APIErrorResponse(401, "You're not registered with a valid \"umn.edu\" email.", &resp)
+		return resp, nil
+	}
+	err = cbs.dynamoClient.CreateUserIfNotExists(strings.TrimSuffix(profile.Email, fmt.Sprintf("@%s", profile.OrganizationDomain)), profile.Name)
+	if err != nil {
+		var ccfe *types.ConditionalCheckFailedException
+		if !errors.As(err, &ccfe) {
+			apiresponse.APIErrorResponse(500, "Failed to communicate with database.", &resp)
+			return resp, err
+		}
+	}
+	tokenDetails, err := cbs.authClient.SignJWT(profile)
+	if err != nil {
+		apiresponse.APIErrorResponse(500, "Failed to sign JWT, please try again.", &resp)
+		return resp, err
+	}
+	tokenDetailsJSON, err := json.Marshal(tokenDetails)
+	if err != nil {
+		apiresponse.APIErrorResponse(500, "Failed to encode JWT, please try again.", &resp)
+		return resp, err
+	}
+	resp.Body = string(tokenDetailsJSON)
+	resp.StatusCode = 200
+	return resp, nil
+}
+
+func main() {
 	// Get the PORT from environment variables
 	host := os.Getenv("HOST")
 	port := ""
@@ -91,12 +123,14 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		region = "us-east-1"
 	}
 
-	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{
-			Region: aws.String(region),
-		},
-	}))
+	awsSession, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion(region),
+	)
+	if err != nil {
+		fmt.Println("Failed to load AWS configuration:", err)
+		return
+	}
 	dynamoClient := dynamo.NewDynamoClient(awsSession)
 
 	cbs := CallbackService{
@@ -104,39 +138,5 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		authClient:        JWTClient,
 		dynamoClient:      dynamoClient,
 	}
-
-	profile, err := cbs.GetUserDataFromGoogle(request.QueryStringParameters["code"])
-	if err != nil {
-		apiresponse.APIErrorResponse(500, "Failed to process callback, please try again.", &resp)
-		return resp, err
-	}
-	if profile.OrganizationDomain != "umn.edu" {
-		apiresponse.APIErrorResponse(401, "You're not registered with a valid \"umn.edu\" email.", &resp)
-		return resp, nil
-	}
-	err = cbs.dynamoClient.CreateUserIfNotExists(strings.TrimSuffix(profile.Email, fmt.Sprintf("@%s", profile.OrganizationDomain)), profile.Name)
-	if err != nil {
-		var ccfe *dynamodb.ConditionalCheckFailedException
-		if !errors.As(err, &ccfe) {
-			apiresponse.APIErrorResponse(500, "Failed to communicate with database.", &resp)
-			return resp, err
-		}
-	}
-	tokenDetails, err := cbs.authClient.SignJWT(profile)
-	if err != nil {
-		apiresponse.APIErrorResponse(500, "Failed to sign JWT, please try again.", &resp)
-		return resp, err
-	}
-	tokenDetailsJSON, err := json.Marshal(tokenDetails)
-	if err != nil {
-		apiresponse.APIErrorResponse(500, "Failed to encode JWT, please try again.", &resp)
-		return resp, err
-	}
-	resp.Body = string(tokenDetailsJSON)
-	resp.StatusCode = 200
-	return resp, nil
-}
-
-func main() {
-	lambda.Start(handler)
+	lambda.Start(cbs.handler)
 }

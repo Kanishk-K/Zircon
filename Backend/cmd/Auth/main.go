@@ -12,16 +12,10 @@ type AuthService struct {
 	authClient authutil.AuthClientMethods
 }
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayV2CustomAuthorizerSimpleResponse, error) {
+func (as AuthService) handler(request events.APIGatewayProxyRequest) (events.APIGatewayV2CustomAuthorizerSimpleResponse, error) {
 	// Buisness logic goes here
 	resp := events.APIGatewayV2CustomAuthorizerSimpleResponse{
 		IsAuthorized: false,
-	}
-
-	JWTClient := authutil.NewAuthClient([]byte(os.Getenv("JWT_PRIVATE")))
-
-	as := AuthService{
-		authClient: JWTClient,
 	}
 
 	claims, err := as.authClient.SecureRoute(request)
@@ -36,5 +30,9 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayV2CustomAu
 }
 
 func main() {
-	lambda.Start(handler)
+	JWTClient := authutil.NewAuthClient([]byte(os.Getenv("JWT_PRIVATE")))
+	as := AuthService{
+		authClient: JWTClient,
+	}
+	lambda.Start(as.handler)
 }
