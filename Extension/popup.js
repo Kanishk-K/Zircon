@@ -4,7 +4,7 @@ window.addEventListener("load", async (event) => {
   AUTH = chrome.storage.local.get("AUTH", function (data) {
     if (data.AUTH !== undefined) {
       // User has a JWT authenticated
-      const { email, expiry, token } = data.AUTH;
+      const { email, expiry } = data.AUTH;
       if (expiry <= Date.now() / 1000) {
         // User has authenticated before, but that has expired.
         UNAUTH_CONTENT.classList.remove("hidden");

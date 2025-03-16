@@ -1,0 +1,38 @@
+{
+  "Records": [
+    {
+      "eventID": "9f46ebcb0fa18a4137a1913d94dc30e2",
+      "eventName": "MODIFY",
+      "eventVersion": "1.1",
+      "eventSource": "aws:dynamodb",
+      "awsRegion": "us-east-1",
+      "dynamodb": {
+        "ApproximateCreationDateTime": 1740864145.0,
+        "Keys": {
+          "entryID": {
+            "S": "TEST_EVENT"
+          }
+        },
+        "NewImage": {
+          "requestedOn": {
+            "S": "2025-02-24 04:44:53"
+          },
+          "requestedVideo": {
+            "S": "minecraft"
+          },
+          "requestedBy": {
+            "S": "USER"
+          },
+          "entryID": {
+            "S": "TEST_EVENT"
+          }
+        },
+        "OldImage": {},
+        "SequenceNumber": "191221900000000115155414939",
+        "SizeBytes": 241,
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "eventSourceARN": ""
+    }
+  ]
+}

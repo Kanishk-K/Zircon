@@ -54,3 +54,12 @@ resource "aws_acm_certificate_validation" "ssl_validation" {
   certificate_arn         = aws_acm_certificate.ssl_cert.arn
   validation_record_fqdns = [for record in aws_route53_record.ssl_cert : record.fqdn]
 }
+
+# SES Route Validation
+resource "aws_route53_record" "ses_validation" {
+  zone_id = var.DOMAIN_ZONE_ID
+  type    = "TXT"
+  ttl     = "600"
+  records = [aws_ses_domain_identity.zircon_domain_identity.verification_token]
+  name    = aws_ses_domain_identity.zircon_domain_identity.id
+}

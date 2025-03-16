@@ -1,0 +1,169 @@
+# This file is the SAM Local Testing Template for our microservice.
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: This is the Auth Service SAM Local Testing Template
+
+Parameters:
+  GOOGLE_CLIENT_ID:
+    Type: String
+    Description: Google Client ID
+  GOOGLE_CLIENT_SECRET:
+    Type: String
+    Description: Google Client Secret
+  JWT_PRIVATE:
+    Type: String
+    Description: JWT Secret
+  OPENAI_API_KEY:
+    Type: String
+    Description: OpenAI API Key
+  LEMONFOX_API_KEY:
+    Type: String
+    Description: LemonFox API Key
+  REDIS_URL:
+    Type: String
+    Description: Redis URL
+
+Resources:
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: Prod
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+          - POST
+        AllowOrigins:
+          - "http://localhost:3000"
+        AllowHeaders:
+          - "Authorization"
+      Auth:
+        DefaultAuthorizer: RequestAuthorizer
+        Authorizers:
+          RequestAuthorizer:
+            AuthorizationType: REQUEST
+            FunctionArn: !GetAtt AuthFunction.Arn
+            AuthorizerPayloadFormatVersion: "2.0"
+            EnableSimpleResponses: true
+
+  LoginFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Login/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Events:
+        CatchAll:
+          Type: HttpApi # https://github.com/aws/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlesshttpapi
+          Properties:
+            Path: /login
+            Method: GET
+      Environment:
+        Variables:
+          GOOGLE_CLIENT_ID: !Ref GOOGLE_CLIENT_ID
+          GOOGLE_CLIENT_SECRET: !Ref GOOGLE_CLIENT_SECRET
+
+  CallbackFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Callback/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Events:
+        CatchAll:
+          Type: HttpApi # https://github.com/aws/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlesshttpapi
+          Properties:
+            Path: /callback
+            Method: GET
+      Environment:
+        Variables:
+          GOOGLE_CLIENT_ID: !Ref GOOGLE_CLIENT_ID
+          GOOGLE_CLIENT_SECRET: !Ref GOOGLE_CLIENT_SECRET
+          JWT_PRIVATE: !Ref JWT_PRIVATE
+
+  AuthFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource:
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Auth/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          JWT_PRIVATE: !Ref JWT_PRIVATE
+
+  JobQueueFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource:
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Job/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Timeout: 29
+      Events:
+        CatchAll:
+          Type: HttpApi # More info about API Event Source:
+          Properties:
+            Path: /submitJob
+            Method: POST
+            ApiId: !Ref HttpApi
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OPENAI_API_KEY
+
+  TTSGenerationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Subtitles/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Timeout: 30
+      Events:
+        DynamoDBTTSEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt DynamoDBTable.StreamArn
+            BatchSize: 1
+            StartingPosition: LATEST
+      Environment:
+        Variables:
+          LEMONFOX_API_KEY: !Ref LEMONFOX_API_KEY
+
+  VideoGenerationFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Queue/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Timeout: 30
+      Events:
+        DynamoDBVideoEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt DynamoDBTable.StreamArn
+            BatchSize: 1
+            StartingPosition: LATEST
+      Environment:
+        Variables:
+          REDIS_URL: !Ref REDIS_URL
