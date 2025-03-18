@@ -1,7 +1,7 @@
 {
   "name": "Zircon",
   "description": "This extension downloads lecture videos and can enhance them to better your learning experience. This is only available for UMN students. Current supported platforms are Unite and Kalkatura",
-  "version": "1.0",
+  "version": "1.2",
   "manifest_version": 3,
   "action": {
     "default_popup": "popup.html",
@@ -35,5 +35,5 @@
     "service_worker": "background.js"
   },
   "permissions": ["storage", "management", "scripting", "tabs"],
-  "host_permissions": ["https://analysis.socialcoding.net/*"]
+  "host_permissions": ["https://zircon.socialcoding.net/*"]
 }

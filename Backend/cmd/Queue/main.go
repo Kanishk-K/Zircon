@@ -62,7 +62,7 @@ func (qs QueueService) handler(request events.DynamoDBEvent) (events.DynamoDBEve
 	_, err = qs.jobQueue.Enqueue(
 		task,
 		priority,
-		asynq.MaxRetry(0),
+		asynq.MaxRetry(3),
 		asynq.TaskID(fmt.Sprintf("%s:%s", entryID, backgroundVideo)),
 		asynq.Unique(time.Hour*24),
 		asynq.Retention(time.Hour*24*7),

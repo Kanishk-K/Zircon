@@ -78,7 +78,7 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 	defer subtitlesFp.Close()
 	defer os.Remove(subtitlesFp.Name())
 
-	mp3Bytes, err := p.s3Client.ReadFile(BUCKET, fmt.Sprintf("/assets/%s/Audio.mp3", payload.EntryID))
+	mp3Bytes, err := p.s3Client.ReadFile(BUCKET, fmt.Sprintf("assets/%s/Audio.mp3", payload.EntryID))
 	if err != nil {
 		log.Printf("Error reading audio file from S3: %v", err)
 		return err
@@ -94,7 +94,7 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 		return err
 	}
 
-	subtitleBytes, err := p.s3Client.ReadFile(BUCKET, fmt.Sprintf("/assets/%s/Subtitle.ass", payload.EntryID))
+	subtitleBytes, err := p.s3Client.ReadFile(BUCKET, fmt.Sprintf("assets/%s/Subtitle.ass", payload.EntryID))
 	if err != nil {
 		log.Printf("Error reading subtitle file from S3: %v", err)
 		return err
@@ -158,7 +158,7 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 	err = cmd.Run()
 	if err != nil {
 		log.Printf("Error in running ffmpeg command: %v", err)
-		return err
+		return fmt.Errorf("failed to generate video with ffmpeg: %w", asynq.SkipRetry)
 	}
 
 	outputFp, err := os.Open(filepath.Join(workingDir, "output.mp4"))
@@ -169,7 +169,7 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 	defer outputFp.Close()
 	defer os.Remove(outputFp.Name())
 
-	err = p.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/%s.mp4", payload.EntryID, payload.BackgroundVideo), outputFp, "video/mp4")
+	err = p.s3Client.UploadFile(BUCKET, fmt.Sprintf("assets/%s/%s.mp4", payload.EntryID, payload.BackgroundVideo), outputFp, "video/mp4")
 	if err != nil {
 		log.Printf("Failed to upload video to S3: %v", err)
 		return err
@@ -191,7 +191,7 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 	)
 	if err != nil {
 		log.Printf("Failed to send email: %v", err)
-		return err
+		return fmt.Errorf("failed to send email: %w", asynq.SkipRetry)
 	}
 
 	return nil

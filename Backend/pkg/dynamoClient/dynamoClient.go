@@ -121,7 +121,6 @@ func (dc *DynamoClient) CreateJobIfNotExists(entryID string, title string, gener
 			GeneratedOn:        time.Now().Format("2006-01-02 15:04:05"),
 			GeneratedBy:        generatedBy,
 			SubtitlesGenerated: false,
-			VideosAvailable:    []string{},
 		},
 	)
 	if err != nil {
@@ -163,9 +162,6 @@ func (dc *DynamoClient) DeleteJobByUser(entryID string, userID string) error {
 }
 
 func (dc *DynamoClient) GenerateSubtitles(entryID string, videoID string) error {
-	if videoID == "" {
-		return nil
-	}
 	_, err := dc.client.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
 		TableName: aws.String("Jobs"),
 		Key: map[string]types.AttributeValue{

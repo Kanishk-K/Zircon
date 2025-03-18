@@ -49,7 +49,7 @@ func (sgs SubtitleGenerationService) handler(request events.DynamoDBEvent) (even
 	log.Printf("Processing request for entryID: %s\n", entryID)
 
 	// Read the summary from S3
-	summary, err := sgs.s3Client.ReadFile(BUCKET, fmt.Sprintf("/assets/%s/Summary.txt", entryID))
+	summary, err := sgs.s3Client.ReadFile(BUCKET, fmt.Sprintf("assets/%s/Summary.txt", entryID))
 	if err != nil {
 		log.Printf("Failed to read summary from S3: %v", err)
 		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{{
@@ -84,7 +84,7 @@ func (sgs SubtitleGenerationService) handler(request events.DynamoDBEvent) (even
 		}}
 		return resp, err
 	}
-	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/TTSResponse.json", entryID), bytes.NewReader(ttsResponseBytes), "application/json")
+	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("assets/%s/TTSResponse.json", entryID), bytes.NewReader(ttsResponseBytes), "application/json")
 	if err != nil {
 		log.Printf("Failed to upload TTS response: %v", err)
 		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{{
@@ -101,7 +101,7 @@ func (sgs SubtitleGenerationService) handler(request events.DynamoDBEvent) (even
 		return resp, err
 	}
 	// Upload the audio to S3
-	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/Audio.mp3", entryID), bytes.NewReader(decodedAudio), "audio/mp3")
+	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("assets/%s/Audio.mp3", entryID), bytes.NewReader(decodedAudio), "audio/mp3")
 	if err != nil {
 		log.Printf("Failed to upload audio: %v", err)
 		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{{
@@ -111,7 +111,7 @@ func (sgs SubtitleGenerationService) handler(request events.DynamoDBEvent) (even
 	}
 	lines := subtitleclient.GenerateSubtitleLines(ttsResponse.WordTimeStamps)
 	assContent := subtitleclient.GenerateASSContent(lines)
-	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/Subtitle.ass", entryID), bytes.NewReader([]byte(assContent)), "application/x-ass")
+	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("assets/%s/Subtitle.ass", entryID), bytes.NewReader([]byte(assContent)), "application/x-ass")
 	if err != nil {
 		log.Printf("Failed to upload subtitles: %v", err)
 		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{{

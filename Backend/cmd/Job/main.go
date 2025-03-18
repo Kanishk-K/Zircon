@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"os"
 
-	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/api-response"
+	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/apiResponse"
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/jobutil"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
@@ -25,6 +25,12 @@ import (
 )
 
 const BUCKET = "lecture-processor"
+
+const (
+	StatusNew     = "NEW"
+	StatusExists  = "EXISTS"
+	StatusSkipped = "SKIPPED"
+)
 
 type JobSchedulerService struct {
 	dynamoClient dynamo.DynamoMethods
@@ -53,6 +59,14 @@ func validateRequest(requestBody *jobutil.JobQueueRequest) error {
 	// Step 3: Ensure the background video is from one of the available options
 	if _, ok := validVideoChoices[requestBody.BackgroundVideo]; !ok {
 		return fmt.Errorf("background video is not from an authorized source %s", requestBody.BackgroundVideo)
+	}
+	// Step 4: Ensure the entry ID is not empty
+	if requestBody.EntryID == "" {
+		return errors.New("entry ID is empty")
+	}
+	// Step 5: Ensure the title is not empty
+	if requestBody.Title == "" {
+		return errors.New("title is empty")
 	}
 
 	return nil
@@ -103,7 +117,7 @@ func (jss JobSchedulerService) generateNotes(transcriptData *string, entryID str
 		return err
 	}
 	output := chatCompletion.Choices[0].Message.Content
-	err = jss.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/Notes.md", entryID), bytes.NewReader([]byte(output)), "text/markdown")
+	err = jss.s3Client.UploadFile(BUCKET, fmt.Sprintf("assets/%s/Notes.md", entryID), bytes.NewReader([]byte(output)), "text/markdown")
 	if err != nil {
 		log.Printf("Failed to upload notes: %v", err)
 		return err
@@ -137,7 +151,7 @@ func (jss JobSchedulerService) generateSummary(transcriptData *string, entryID s
 		return err
 	}
 	output := chatCompletion.Choices[0].Message.Content
-	err = jss.s3Client.UploadFile(BUCKET, fmt.Sprintf("/assets/%s/Summary.txt", entryID), bytes.NewReader([]byte(output)), "text/plain")
+	err = jss.s3Client.UploadFile(BUCKET, fmt.Sprintf("assets/%s/Summary.txt", entryID), bytes.NewReader([]byte(output)), "text/plain")
 	if err != nil {
 		log.Printf("Failed to upload notes: %v", err)
 		return err
@@ -154,15 +168,16 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 		},
 		IsBase64Encoded: false,
 	}
+	respBody := make(map[string]interface{})
 	requestBody := jobutil.JobQueueRequest{}
 	err := json.Unmarshal([]byte(request.Body), &requestBody)
 	if err != nil {
-		apiresponse.APIErrorResponse(400, "Failed to decode request body", &resp)
+		apiresponse.APIErrorResponse(500, "Failed to decode request body", &resp)
 		return resp, nil
 	}
 	err = validateRequest(&requestBody)
 	if err != nil {
-		apiresponse.APIErrorResponse(400, err.Error(), &resp)
+		apiresponse.APIErrorResponse(500, "Submitted request was not valid", &resp)
 		return resp, nil
 	}
 	/*
@@ -180,17 +195,19 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 		var ccfe *types.ConditionalCheckFailedException
 		if errors.As(err, &ccfe) {
 			// Job already exists
+			respBody["contentGeneration"] = StatusExists
 			log.Printf("Job already exists, updating job status should more items be added.")
 		} else {
 			// Some other error occurred
 			apiresponse.APIErrorResponse(500, "Failed to create job", &resp)
-			return resp, nil
+			return resp, err
 		}
 	} else {
+		respBody["contentGeneration"] = StatusNew
 		err = jss.dynamoClient.AddScheduledJobToUser(subject, requestBody.EntryID)
 		if err != nil {
 			_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
-			apiresponse.APIErrorResponse(500, "Failed to schedule job", &resp)
+			apiresponse.APIErrorResponse(500, "User not permitted to create more requests", &resp)
 			return resp, err
 		}
 
@@ -217,21 +234,32 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 		}
 	}
 
-	// Request subtitle generation
-	err = jss.dynamoClient.GenerateSubtitles(requestBody.EntryID, requestBody.BackgroundVideo)
-	if err != nil {
-		apiresponse.APIErrorResponse(500, "Failed to update job status", &resp)
-		return resp, err
+	if requestBody.BackgroundVideo != "" {
+		respBody["videoGeneration"] = StatusNew
+		// Request subtitle generation
+		err = jss.dynamoClient.GenerateSubtitles(requestBody.EntryID, requestBody.BackgroundVideo)
+		if err != nil {
+			apiresponse.APIErrorResponse(500, "Failed to update job status", &resp)
+			return resp, err
+		}
+
+		// Request video generation
+		err = jss.dynamoClient.CreateVideoRequest(requestBody.EntryID, requestBody.BackgroundVideo, subject)
+		if err != nil {
+			var ccfe *types.ConditionalCheckFailedException
+			if errors.As(err, &ccfe) {
+				// Video requested previously
+				respBody["videoGeneration"] = StatusExists
+			} else {
+				apiresponse.APIErrorResponse(500, "Failed to create new video request", &resp)
+				return resp, err
+			}
+		}
+	} else {
+		respBody["videoGeneration"] = StatusSkipped
 	}
 
-	// Request video generation
-	err = jss.dynamoClient.CreateVideoRequest(requestBody.EntryID, requestBody.BackgroundVideo, subject)
-	if err != nil {
-		apiresponse.APIErrorResponse(500, "Failed to create video request", &resp)
-		return resp, err
-	}
-
-	apiresponse.APIErrorResponse(200, "Job scheduled successfully", &resp)
+	apiresponse.APISuccessResponse(respBody, &resp)
 
 	return resp, nil
 }

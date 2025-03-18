@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +11,6 @@ import (
 	sesclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/sesClient"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/tasks"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/hibiken/asynq"
 )
 
@@ -27,10 +25,6 @@ func main() {
 				"low":    1,
 			},
 			StrictPriority: true,
-			IsFailure: func(err error) bool {
-				var nsk *types.NoSuchKey
-				return !errors.As(err, &nsk)
-			},
 		},
 	)
 	// Initialize the service

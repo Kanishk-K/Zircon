@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/api-response"
+	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/apiResponse"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/authutil"
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	"github.com/aws/aws-lambda-go/events"

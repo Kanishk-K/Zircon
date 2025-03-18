@@ -70,6 +70,7 @@ func (ac *AuthClient) SecureRoute(request events.APIGatewayProxyRequest) (jwt.Ma
 		// Check for lower case authorization header from apigateway
 		tokenString = request.Headers["authorization"]
 	}
+	log.Printf("Token: %s", tokenString)
 	if tokenString == "" {
 		log.Printf("Missing authorization header (JWT)")
 		return nil, fmt.Errorf("missing authorization header (JWT)")

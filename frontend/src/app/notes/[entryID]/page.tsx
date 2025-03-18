@@ -14,7 +14,7 @@ const shikiOptions = {
 }
 
 async function generateProdMarkdown(entryID:string){
-    const response = await fetch(`https://analysis.socialcoding.net/assets/${entryID}/Notes.md`)
+    const response = await fetch(`https://zircon.socialcoding.net/assets/${entryID}/Notes.md`)
     if (response.ok) {
         const text = await response.text();
         return <MDXRemote components={components} source={text} options={

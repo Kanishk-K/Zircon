@@ -36,7 +36,7 @@ resource "aws_cloudfront_distribution" "web_routing" {
   }
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
-    cached_methods         = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD", "OPTIONS"]
     target_origin_id       = local.apigw_origin_id
     viewer_protocol_policy = "redirect-to-https"
     compress               = true

@@ -1,4 +1,4 @@
-const SERVERHOST = "https://analysis.socialcoding.net";
+const SERVERHOST = "https://zircon.socialcoding.net";
 // chrome.storage.local.clear(); // Remove before deploying to prod, deletes auth information on each reload.
 
 // Checks if tab is loaded

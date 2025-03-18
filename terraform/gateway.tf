@@ -11,7 +11,7 @@ resource "aws_apigatewayv2_api" "zircon-api" {
   protocol_type = "HTTP"
   cors_configuration {
     allow_methods = ["GET", "POST"]
-    allow_origins = ["https://${var.DOMAIN}", "https://www.${var.DOMAIN}"]
+    allow_origins = ["*"]
     allow_headers = [
       "Authorization"
     ]

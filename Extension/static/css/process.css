@@ -112,7 +112,7 @@
   fill: var(--foreground);
 }
 
-.progress-element.queue > .status-circle {
+.progress-element.processing > .status-circle {
   border-color: #facc15;
   background-color: #fef08a;
 }
@@ -125,4 +125,19 @@
 .progress-element.error > .status-circle {
   border-color: #dc2626;
   background-color: #f87171;
+}
+
+.progress-element.processing > p::after {
+  content: " [SENDING]";
+  color: #fef08a;
+}
+
+.progress-element.error > p::after {
+  content: " [ERROR]";
+  color: #f87171;
+}
+
+.progress-element.success > p::after {
+  content: " [SUCCESS]";
+  color: #bbf7d0;
 }

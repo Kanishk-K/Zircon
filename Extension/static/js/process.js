@@ -1,17 +1,5 @@
-const SERVERHOST = "https://analysis.socialcoding.net";
+const SERVERHOST = "https://zircon.socialcoding.net";
 let payload = undefined;
-let jwt = undefined;
-const statusMapping = {
-  0: ["generation requested", "REQUEST"],
-  1: ["generation currently processing", "QUEUE"],
-  2: ["generation awaiting processing", "QUEUE"],
-  // 3: "Task Scheduled", // Not used
-  // 4: "Aiming For Retry", // Not used
-  5: ["generation failed", "ERROR"],
-  6: ["generation successful", "SUCCESS"],
-  // 7: "Task Aggregating Into Group", // Not used
-};
-
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg.action === "setData") {
     // you can use msg.data only inside this callback
@@ -35,6 +23,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
 
     payload = {
       entryID: msg.data.entryID,
+      title: msg.data.title,
       transcript: msg.data.transcript,
       backgroundVideo: "",
     };
@@ -71,7 +60,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
       });
       console.log(payload);
       const submitProgress = document.getElementById("to-server");
-      const videoProgress = document.getElementById("video-gen");
+      submitProgress.classList.add("processing");
 
       fetch(`${SERVERHOST}/submitJob`, {
         method: "POST",
@@ -83,14 +72,21 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
       })
         .then((response) => {
           if (!response.ok) {
-            console.log("Error submitting job");
-            return;
-          } else {
-            console.log("Job submitted successfully");
+            submitProgress.classList.add("error");
+            return response.json().then((err) => {
+              throw err;
+            });
           }
+          return response.json();
         })
         .then((data) => {
+          submitProgress.classList.add("success");
           console.log(data);
+        })
+        .catch((err) => {
+          if (err.message) {
+            console.error("Error Message: ", err.message);
+          }
         });
     }
 
