@@ -124,6 +124,27 @@ resource "aws_iam_role_policy_attachment" "ecs-consumer-task-sesv2-policy" {
   policy_arn = aws_iam_policy.ecs-consumer-task-sesv2.arn
 }
 
+# DEFINE the cognito access policy for the ECS Consumer Task Role
+data "aws_iam_policy_document" "ecs-consumer-task-cognito" {
+  statement {
+    actions   = ["cognito-idp:AdminGetUser"]
+    resources = [aws_cognito_user_pool.zircon_user_pool.arn]
+  }
+}
+
+# CREATE the cognito access policy for the ECS Consumer Task Role
+resource "aws_iam_policy" "ecs-consumer-task-cognito" {
+  name        = "lecture-analyzer-ecs-consumer-task-cognito"
+  description = "Allows the task to access Cognito Emails"
+  policy      = data.aws_iam_policy_document.ecs-consumer-task-cognito.json
+}
+
+# ATTACH the cognito access policy to the ECS Consumer Task Role
+resource "aws_iam_role_policy_attachment" "ecs-consumer-task-cognito-policy" {
+  role       = aws_iam_role.ecs-consumer-task-role.name
+  policy_arn = aws_iam_policy.ecs-consumer-task-cognito.arn
+}
+
 # CREATE the ECS Consumer Task Execution Role
 resource "aws_iam_role" "ecs-consumer-task-execution-role" {
   name               = "lecture-analyzer-ecs-consumer-task-execution-role"

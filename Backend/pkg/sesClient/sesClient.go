@@ -34,7 +34,7 @@ func (sc *SESClient) SendEmail(to string, subject string, entryID string, backgr
 	emailInput := &sesv2.SendEmailInput{
 		Destination: &types.Destination{
 			ToAddresses: []string{
-				fmt.Sprintf("%s@umn.edu", to),
+				to,
 			},
 		},
 		FromEmailAddress: aws.String(fmt.Sprintf("Zircon <noreply@%s>", sc.domain)),

@@ -1,4 +1,6 @@
-const SERVERHOST = "https://zircon.socialcoding.net";
+import { SERVERHOST } from "../../src/util/info.js";
+import { getUserJWT } from "../../src/util/jwt.js";
+
 let payload = undefined;
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg.action === "setData") {
@@ -19,7 +21,6 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
 
     thumbnail.src = msg.data.thumbnail;
     title.textContent = msg.data.title;
-    jwt = msg.jwt;
 
     payload = {
       entryID: msg.data.entryID,
@@ -51,17 +52,21 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
       video.addEventListener("click", videoClick);
     });
 
-    function handleProcess() {
+    async function handleProcess() {
       // Disable all form elements, remove event listeners, and show progress container
       this.disabled = true;
       Array.from(videoSelections).forEach((video) => {
         video.removeEventListener("click", videoClick);
         video.style.cursor = "not-allowed";
       });
-      console.log(payload);
       const submitProgress = document.getElementById("to-server");
       submitProgress.classList.add("processing");
 
+      const jwt = await getUserJWT();
+      if (!jwt) {
+        submitProgress.classList.add("error");
+        return;
+      }
       fetch(`${SERVERHOST}/submitJob`, {
         method: "POST",
         headers: {
@@ -70,12 +75,11 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
         },
         body: JSON.stringify(payload),
       })
-        .then((response) => {
+        .then(async (response) => {
           if (!response.ok) {
             submitProgress.classList.add("error");
-            return response.json().then((err) => {
-              throw err;
-            });
+            const err = await response.json();
+            throw err;
           }
           return response.json();
         })
@@ -85,6 +89,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
         })
         .catch((err) => {
           if (err.message) {
+            console.log(`Payload: ${JSON.stringify(payload)}`);
             console.error("Error Message: ", err.message);
           }
         });

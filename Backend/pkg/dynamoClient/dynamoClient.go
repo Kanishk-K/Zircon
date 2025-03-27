@@ -13,7 +13,7 @@ import (
 
 type DynamoMethods interface {
 	// User modification methods
-	CreateUserIfNotExists(userID string, name string) error
+	CreateUserIfNotExists(userID string) error
 	AddScheduledJobToUser(userID string, entryID string) error
 	DeregisterJobFromUser(userID string, entryID string) error
 
@@ -38,11 +38,10 @@ func NewDynamoClient(awsSession aws.Config) DynamoMethods {
 	}
 }
 
-func (dc *DynamoClient) CreateUserIfNotExists(userID string, name string) error {
+func (dc *DynamoClient) CreateUserIfNotExists(userID string) error {
 	userData, err := attributevalue.MarshalMap(
 		UserDocument{
 			UserID:               userID,
-			Name:                 name,
 			CreatedOn:            time.Now().Format("2006-01-02 15:04:05"),
 			PermittedGenerations: 5,
 			ScheduledJobs:        []string{},

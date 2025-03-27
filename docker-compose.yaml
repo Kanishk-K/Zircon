@@ -12,8 +12,9 @@ services:
     depends_on:
       - redis
     environment:
-      - REDIS_URL=redis:6379
-      - DOMAIN=zircon.socialcoding.net
+      - REDIS_URL=${REDIS_URL}
+      - DOMAIN=${DOMAIN}
+      - COGNITO_POOL=${COGNITO_POOL}
     volumes:
       # Mount the AWS credentials file to the container
       - ~/.aws:/root/.aws

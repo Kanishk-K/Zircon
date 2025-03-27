@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	cognitoclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/cognitoClient"
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	sesclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/sesClient"
@@ -28,13 +29,14 @@ type VideoGenerationPayload struct {
 }
 
 type GenerateVideoProcess struct {
-	s3Client     s3client.S3Methods
-	dynamoClient dynamo.DynamoMethods
-	sesClient    sesclient.SESMethods
+	s3Client      s3client.S3Methods
+	dynamoClient  dynamo.DynamoMethods
+	sesClient     sesclient.SESMethods
+	cognitoClient cognitoclient.CognitoMethods
 }
 
-func NewGenerateVideoProcess(s3Client s3client.S3Methods, dynamoClient dynamo.DynamoMethods, sesClient sesclient.SESMethods) *GenerateVideoProcess {
-	return &GenerateVideoProcess{s3Client, dynamoClient, sesClient}
+func NewGenerateVideoProcess(s3Client s3client.S3Methods, dynamoClient dynamo.DynamoMethods, sesClient sesclient.SESMethods, cognitoClient cognitoclient.CognitoMethods) *GenerateVideoProcess {
+	return &GenerateVideoProcess{s3Client, dynamoClient, sesClient, cognitoClient}
 }
 
 func NewVideoGenerationTask(entryID string, requestedBy string, backgroundVideo string) (*asynq.Task, error) {
@@ -183,8 +185,15 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 		return err
 	}
 
+	// Get the user's actual email from cognito given the username
+	email, err := p.cognitoClient.GetEmailFromUsername(payload.RequestedBy)
+	if err != nil {
+		log.Printf("Failed to get email from username: %v", err)
+		return fmt.Errorf("failed to get email from username: %w", asynq.SkipRetry)
+	}
+
 	err = p.sesClient.SendEmail(
-		payload.RequestedBy,
+		email,
 		updated.Attributes["title"].(*types.AttributeValueMemberS).Value,
 		payload.EntryID,
 		payload.BackgroundVideo,

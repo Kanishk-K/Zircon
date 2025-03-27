@@ -114,6 +114,10 @@ resource "aws_ecs_task_definition" "ecs-consumer-task-definition" {
       {
         name  = "DOMAIN"
         value = var.DOMAIN
+      },
+      {
+        name  = "COGNITO_POOL"
+        value = aws_cognito_user_pool.zircon_user_pool.id
       }
     ]
   }])

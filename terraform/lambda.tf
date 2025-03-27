@@ -13,54 +13,29 @@ locals {
   zip_path = "${path.module}/../backend/bin"
 }
 
-resource "aws_lambda_function" "login-lambda" {
-  function_name    = "zircon-login-lambda"
+resource "aws_lambda_function" "pre_signup_lambda" {
+  function_name    = "zircon-pre-signup-lambda"
   role             = aws_iam_role.lambda-role.arn
   runtime          = "provided.al2023"
   handler          = "bootstrap"
-  filename         = "${local.zip_path}/Login.zip"
-  source_code_hash = filebase64sha256("${local.zip_path}/Login.zip")
+  filename         = "${local.zip_path}/PreSignUp.zip"
+  source_code_hash = filebase64sha256("${local.zip_path}/PreSignUp.zip")
   memory_size      = 128
   environment {
     variables = {
-      GOOGLE_CLIENT_ID     = var.GOOGLE_CLIENT_ID
-      GOOGLE_CLIENT_SECRET = var.GOOGLE_CLIENT_SECRET
-      HOST                 = "https://${var.DOMAIN}"
+      ORGANIZATION = "@umn.edu"
     }
   }
 }
 
-resource "aws_lambda_function" "callback-lambda" {
-  function_name    = "zircon-callback-lambda"
-  role             = aws_iam_role.lambda-callback-role.arn
+resource "aws_lambda_function" "post_signup_lambda" {
+  function_name    = "zircon-post-signup-lambda"
+  role             = aws_iam_role.post_signup_lambda_role.arn
   runtime          = "provided.al2023"
   handler          = "bootstrap"
-  filename         = "${local.zip_path}/Callback.zip"
-  source_code_hash = filebase64sha256("${local.zip_path}/Callback.zip")
+  filename         = "${local.zip_path}/PostSignUp.zip"
+  source_code_hash = filebase64sha256("${local.zip_path}/PostSignUp.zip")
   memory_size      = 128
-  environment {
-    variables = {
-      GOOGLE_CLIENT_ID     = var.GOOGLE_CLIENT_ID
-      GOOGLE_CLIENT_SECRET = var.GOOGLE_CLIENT_SECRET
-      JWT_PRIVATE          = var.JWT_PRIVATE
-      HOST                 = "https://${var.DOMAIN}"
-    }
-  }
-}
-
-resource "aws_lambda_function" "auth-lambda" {
-  function_name    = "zircon-auth-lambda"
-  role             = aws_iam_role.lambda-authorizer-role.arn
-  runtime          = "provided.al2023"
-  handler          = "bootstrap"
-  filename         = "${local.zip_path}/Auth.zip"
-  source_code_hash = filebase64sha256("${local.zip_path}/Auth.zip")
-  memory_size      = 128
-  environment {
-    variables = {
-      JWT_PRIVATE = var.JWT_PRIVATE
-    }
-  }
 }
 
 resource "aws_lambda_function" "job-lambda" {

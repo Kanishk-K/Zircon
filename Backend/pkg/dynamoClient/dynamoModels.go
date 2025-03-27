@@ -5,7 +5,6 @@ type UserDocument struct {
 	CreatedOn            string   `dynamodbav:"createdOn"`
 	PermittedGenerations int      `dynamodbav:"permittedGenerations"`
 	ScheduledJobs        []string `dynamodbav:"scheduledJobs,stringset,omitempty"`
-	Name                 string   `dynamodbav:"name"`
 }
 
 type JobDocument struct {

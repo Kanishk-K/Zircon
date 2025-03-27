@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	cognitoclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/cognitoClient"
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	sesclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/sesClient"
@@ -44,8 +45,9 @@ func main() {
 	s3Client := s3client.NewS3Client(awsSession)
 	dynamoClient := dynamo.NewDynamoClient(awsSession)
 	sesClient := sesclient.NewSESClient(awsSession)
+	cognitoClient := cognitoclient.NewCognitoClient(awsSession)
 
-	vg := tasks.NewGenerateVideoProcess(s3Client, dynamoClient, sesClient)
+	vg := tasks.NewGenerateVideoProcess(s3Client, dynamoClient, sesClient, cognitoClient)
 
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.VideoGenerationTask, vg.HandleVideoGenerationTask)

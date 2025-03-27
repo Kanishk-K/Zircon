@@ -35,6 +35,6 @@ tts:
 video:
 	@[ -z $(entryID) ] && echo "entryID is required add the argument entryID=entryID" && exit 1 || echo "entryID is $(entryID)"
 	@[ -z $(userID) ] && echo "userID is required add the argument userID=userID" && exit 1 || echo "userID is $(userID)"
-	sam.cmd build --cached && cat cmd/Queue/testAddEvent.json | sed 's/TEST_EVENT/$(entryID)/g' | sed 's/USER/$(userID)/g' | sam.cmd local invoke --docker-network zircon --env-vars .env --event - VideoGenerationFunction
+	sam.cmd build && cat cmd/Queue/testAddEvent.json | sed 's/TEST_EVENT/$(entryID)/g' | sed 's/USER/$(userID)/g' | sam.cmd local invoke --docker-network zircon --env-vars .env --event - VideoGenerationFunction
 
 .PHONY: all clean

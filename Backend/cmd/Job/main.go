@@ -185,10 +185,11 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 	*/
 	var subject string
 	if jss.isProd {
-		subject = request.RequestContext.Authorizer["sub"].(string)
+		subject = request.RequestContext.Authorizer["claims"].(map[string]any)["cognito:username"].(string)
 	} else {
 		subject = "DEV USER"
 	}
+	log.Print("Subject: ", subject)
 	// Add the job if it doesn't exist
 	err = jss.dynamoClient.CreateJobIfNotExists(requestBody.EntryID, requestBody.Title, subject)
 	if err != nil {

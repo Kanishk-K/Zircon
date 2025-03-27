@@ -32,8 +32,16 @@
     }
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
-  "permissions": ["storage", "management", "scripting", "tabs"],
+  "permissions": [
+    "storage",
+    "management",
+    "scripting",
+    "identity",
+    "cookies",
+    "tabs"
+  ],
   "host_permissions": ["https://zircon.socialcoding.net/*"]
 }
