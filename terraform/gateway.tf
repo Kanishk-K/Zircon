@@ -86,3 +86,26 @@ resource "aws_lambda_permission" "exists-integration-perm" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.zircon-api.execution_arn}/*"
 }
+
+# Health Route
+resource "aws_apigatewayv2_route" "health-route" {
+  api_id    = aws_apigatewayv2_api.zircon-api.id
+  route_key = "GET /health"
+  target    = "integrations/${aws_apigatewayv2_integration.health-integration.id}"
+}
+
+resource "aws_apigatewayv2_integration" "health-integration" {
+  api_id             = aws_apigatewayv2_api.zircon-api.id
+  integration_type   = "AWS_PROXY"
+  connection_type    = "INTERNET"
+  integration_method = "POST"
+  integration_uri    = aws_lambda_function.health_lambda.invoke_arn
+}
+
+resource "aws_lambda_permission" "health-integration-perm" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.health_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.zircon-api.execution_arn}/*"
+}

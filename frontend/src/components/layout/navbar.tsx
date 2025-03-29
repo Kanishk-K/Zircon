@@ -12,7 +12,7 @@ export default function Navbar() {
                 <div className="hidden md:flex flex-row items-center gap-6">
                     <a href="#" className="hover:text-foreground text-neutral-400">About</a>
                     <Link href="/notes" className="hover:text-foreground text-neutral-400">Notes</Link>
-                    <a href="#" className="hover:text-foreground text-neutral-400">System Status</a>
+                    <Link href="/health" className="hover:text-foreground text-neutral-400">System Status</Link>
                     <a href="https://github.com/Kanishk-K/Zircon" className="hover:text-foreground text-neutral-400 flex flex-row items-center gap-2">Github <FaGithub /></a>
                     <a href="#" className="p-2 bg-brand text-background font-medium rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-md">Get Started</a>
                 </div>

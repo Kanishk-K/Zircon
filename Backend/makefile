@@ -23,7 +23,7 @@ auth:
 	aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
 api:
-	sam.cmd build && sam.cmd local start-api --env-vars .env
+	sam.cmd build && sam.cmd local start-api --env-vars .env --docker-network zircon
 
 invoke:
 	sam.cmd build && sam.cmd local start-lambda --env-vars .env

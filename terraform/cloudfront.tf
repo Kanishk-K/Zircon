@@ -63,6 +63,9 @@ resource "aws_cloudfront_distribution" "web_routing" {
         forward = "none"
       }
     }
+    default_ttl = 86400
+    max_ttl     = 31536000
+    min_ttl     = 0
   }
   restrictions {
     geo_restriction {

@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func APISuccessResponse(body map[string]interface{}, resp *events.APIGatewayProxyResponse) {
+func APISuccessResponse(body any, resp *events.APIGatewayProxyResponse) {
 	resp.StatusCode = 200
 	jsonData, err := json.Marshal(body)
 	if err != nil {

@@ -105,3 +105,24 @@ Resources:
           Properties:
             Path: /exists
             Method: GET
+
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Health/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Timeout: 30
+      Events:
+        CatchAll:
+          Type: HttpApi # More info about API Event Source:
+          Properties:
+            Path: /health
+            Method: GET
+      Environment:
+        Variables:
+          REDIS_URL: !Ref REDIS_URL

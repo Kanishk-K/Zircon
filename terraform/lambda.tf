@@ -98,3 +98,22 @@ resource "aws_lambda_function" "exists_lambda" {
   source_code_hash = filebase64sha256("${local.zip_path}/Exists.zip")
   memory_size      = 128
 }
+
+resource "aws_lambda_function" "health_lambda" {
+  function_name    = "zircon-health-lambda"
+  role             = aws_iam_role.health_lambda.arn
+  runtime          = "provided.al2023"
+  handler          = "bootstrap"
+  filename         = "${local.zip_path}/Health.zip"
+  source_code_hash = filebase64sha256("${local.zip_path}/Health.zip")
+  memory_size      = 128
+  vpc_config {
+    security_group_ids = [aws_security_group.lambda-elasticache-sg.id]
+    subnet_ids         = aws_subnet.public-subnets[*].id
+  }
+  environment {
+    variables = {
+      REDIS_URL = "${aws_elasticache_replication_group.task-queue.primary_endpoint_address}:6379"
+    }
+  }
+}
