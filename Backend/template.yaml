@@ -88,3 +88,20 @@ Resources:
       Environment:
         Variables:
           REDIS_URL: !Ref REDIS_URL
+
+  ExistsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: cmd/Exists/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Events:
+        CatchAll:
+          Type: HttpApi # More info about API Event Source:
+          Properties:
+            Path: /exists
+            Method: GET

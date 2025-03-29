@@ -22,6 +22,7 @@ type DynamoMethods interface {
 	DeleteJobByUser(entryID string, userID string) error
 	GenerateSubtitles(entryID string, videoID string) error
 	AddVideoToJob(entryID string, videoID string) (*dynamodb.UpdateItemOutput, error)
+	GetJob(entryID string) (*JobDocument, error)
 
 	// Video request methods
 	CreateVideoRequest(entryID string, requestedVideo string, requestedBy string) error
@@ -205,6 +206,31 @@ func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) (*dynamodb
 		return nil, err
 	}
 	return update, nil
+}
+
+func (dc *DynamoClient) GetJob(entryID string) (*JobDocument, error) {
+	result, err := dc.client.GetItem(context.Background(), &dynamodb.GetItemInput{
+		TableName: aws.String("Jobs"),
+		Key: map[string]types.AttributeValue{
+			"entryID": &types.AttributeValueMemberS{
+				Value: entryID,
+			},
+		},
+	})
+	if err != nil {
+		log.Println("Error getting job data: ", err)
+		return nil, err
+	}
+	if result.Item == nil {
+		return nil, nil
+	}
+	var job JobDocument
+	err = attributevalue.UnmarshalMap(result.Item, &job)
+	if err != nil {
+		log.Println("Error unmarshalling job data: ", err)
+		return nil, err
+	}
+	return &job, nil
 }
 
 func (dc *DynamoClient) CreateVideoRequest(entryID string, requestedVideo string, requestedBy string) error {

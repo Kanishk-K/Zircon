@@ -37,6 +37,6 @@ resource "aws_iam_policy_attachment" "innerVPC-lambda-policy" {
 # Lambda logging policy attachment
 resource "aws_iam_policy_attachment" "submit-cloudwatch" {
   name       = "submit-cloudwatch"
-  roles      = [aws_iam_role.submit-job-role.name, aws_iam_role.tts-role.name, aws_iam_role.queue-lambda.name]
+  roles      = [aws_iam_role.submit-job-role.name, aws_iam_role.tts-role.name, aws_iam_role.queue-lambda.name, aws_iam_role.exists_lambda_role.name]
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }

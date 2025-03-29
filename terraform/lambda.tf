@@ -88,3 +88,13 @@ resource "aws_lambda_function" "queue-lambda" {
     }
   }
 }
+
+resource "aws_lambda_function" "exists_lambda" {
+  function_name    = "zircon-exists-lambda"
+  role             = aws_iam_role.exists_lambda_role.arn
+  runtime          = "provided.al2023"
+  handler          = "bootstrap"
+  filename         = "${local.zip_path}/Exists.zip"
+  source_code_hash = filebase64sha256("${local.zip_path}/Exists.zip")
+  memory_size      = 128
+}

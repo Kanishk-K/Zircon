@@ -20,7 +20,8 @@
   margin: 2rem 0px;
 }
 
-#progress-container {
+#progress-container,
+#existing-content {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -86,17 +87,23 @@
   border-radius: 1rem;
 }
 
-.progress-element {
+.progress-element,
+.content-available {
   display: flex;
   flex-direction: row;
   gap: 0.5rem;
   align-items: center;
 }
 
-.progress-element > svg {
+.progress-element,
+.content-available > svg {
   fill: #a3a3a3;
   height: 32px;
   width: auto;
+}
+
+.content-available:hover > svg {
+  fill: var(--foreground);
 }
 
 .status-circle {
