@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import Navbar from "../components/layout/navbar";
@@ -10,9 +10,13 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Lecture Analyzer Application",
-  description: "Analyze lectures at the University of Minnesota.",
+  title: "Zircon",
+  description: "Generate notes, summaries, and \"short-form video content\" from University of Minnesota lectures.",
 };
+
+export const viewport: Viewport = {
+  themeColor: "#C59F63"
+}
 
 export default function RootLayout({
   children,
