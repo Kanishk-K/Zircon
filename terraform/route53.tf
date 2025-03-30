@@ -107,3 +107,21 @@ resource "aws_route53_record" "ses_validation" {
   records = [aws_ses_domain_identity.zircon_domain_identity.verification_token]
   name    = aws_ses_domain_identity.zircon_domain_identity.id
 }
+
+# SES DMARC Validation 
+resource "aws_route53_record" "dmarc_validation" {
+  zone_id = var.DOMAIN_ZONE_ID
+  type    = "TXT"
+  ttl     = "600"
+  records = ["v=DMARC1; p=none; rua=mailto:dmarc-reports@${var.DOMAIN}"]
+  name    = "_dmarc.${var.DOMAIN}"
+}
+
+resource "aws_route53_record" "dkim_validation" {
+  count   = 3
+  zone_id = var.DOMAIN_ZONE_ID
+  type    = "CNAME"
+  ttl     = "300"
+  records = ["${aws_ses_domain_dkim.zircon_dkim.dkim_tokens[count.index]}.dkim.amazonses.com"]
+  name    = "${aws_ses_domain_dkim.zircon_dkim.dkim_tokens[count.index]}._domainkey.${var.DOMAIN}"
+}

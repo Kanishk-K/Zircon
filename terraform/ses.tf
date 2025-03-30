@@ -14,6 +14,10 @@ resource "aws_ses_domain_identity" "zircon_domain_identity" {
   }
 }
 
+resource "aws_ses_domain_dkim" "zircon_dkim" {
+  domain = var.DOMAIN
+}
+
 resource "aws_ses_template" "zircon_job_complete_template" {
   name    = "zircon_job_complete_template"
   subject = "[Zircon] Your {{VideoTitle}} Video for {{Subject}}!"
