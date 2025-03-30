@@ -15,7 +15,6 @@ window.addEventListener("load", async (event) => {
       const recentProcesses = result.recentProcesses || [];
       const recentProcessesList = document.getElementById("prev_analysis");
       recentProcesses.forEach((process) => {
-        console.log(process);
         const process_card = document.createElement("div");
         process_card.className = "process-card";
         recentProcessesList.appendChild(process_card);
@@ -66,6 +65,7 @@ window.addEventListener("load", async (event) => {
   const token = await getUserJWT();
   if (token) {
     updateProfile();
+    console.log(token);
     AUTH_CONTENT.classList.remove("hidden");
   } else {
     LOGIN_BTN.addEventListener("click", async (event) => {

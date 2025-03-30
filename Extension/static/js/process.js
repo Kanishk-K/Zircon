@@ -143,7 +143,10 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
         .catch((err) => {
           if (err.message) {
             console.log(`Payload: ${JSON.stringify(payload)}`);
-            console.error("Error Message: ", err.message);
+            const progressAlert = document.getElementById("progress-alert");
+            const alertMessage = progressAlert.querySelector("p");
+            alertMessage.innerHTML = `<strong>Error:</strong> ${err.message}`;
+            progressAlert.classList.remove("hidden");
           }
         });
     }

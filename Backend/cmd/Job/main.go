@@ -199,7 +199,7 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 		if err != nil {
 			_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
 			apiresponse.APIErrorResponse(500, "User not permitted to create more requests", &resp)
-			return resp, err
+			return resp, nil
 		}
 
 		transcriptLink, err := kalturaclient.GetTranscriptLink(requestBody.EntryID)
