@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
@@ -29,8 +30,13 @@ func NewSESClient(awsSession aws.Config) SESMethods {
 	}
 }
 
-func (sc *SESClient) SendEmail(to string, subject string, entryID string, backgroundVideo string) error {
+func TitleVideo(backgroundVideo string) string {
+	replacedVideo := strings.ReplaceAll(backgroundVideo, "_", " ")
 	caser := cases.Title(language.English)
+	return caser.String(replacedVideo)
+}
+
+func (sc *SESClient) SendEmail(to string, subject string, entryID string, backgroundVideo string) error {
 	emailInput := &sesv2.SendEmailInput{
 		Destination: &types.Destination{
 			ToAddresses: []string{
@@ -41,7 +47,15 @@ func (sc *SESClient) SendEmail(to string, subject string, entryID string, backgr
 		Content: &types.EmailContent{
 			Template: &types.Template{
 				TemplateName: aws.String("zircon_job_complete_template"),
-				TemplateData: aws.String(fmt.Sprintf(`{ "Subject": "%s", "BackgroundVideo": "%s"}`, subject, caser.String(backgroundVideo))),
+				TemplateData: aws.String(
+					fmt.Sprintf(
+						`{ "Subject": "%s", "VideoTitle": "%s", "VideoType": "%s", "EntryID": "%s" }`,
+						subject,
+						TitleVideo(backgroundVideo),
+						backgroundVideo,
+						entryID,
+					),
+				),
 			},
 		},
 	}

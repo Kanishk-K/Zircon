@@ -16,7 +16,7 @@ resource "aws_ses_domain_identity" "zircon_domain_identity" {
 
 resource "aws_ses_template" "zircon_job_complete_template" {
   name    = "zircon_job_complete_template"
-  subject = "[Zircon] Your Video is Ready!"
+  subject = "[Zircon] Your {{VideoTitle}} Video for {{Subject}}!"
   html    = file("${path.module}/../backend/pkg/sesClient/jobTemplate.html")
-  text    = "Your requested video is ready! You can view it by opening this link in your browser:\nhttps://www.notes.socialcoding.net/"
+  text    = "Your requested video is ready! You can view it by opening this link in your browser:\nhttps://www.zircon.socialcoding.net/assets/{{EntryID}}/{{VideoType}}.mp4"
 }
