@@ -1,6 +1,7 @@
 import { getUserJWT } from "./src/util/jwt.js";
 // import { DOMAIN } from "./src/util/info.js";
 // chrome.storage.local.clear();
+// chrome.storage.sync.clear();
 // chrome.cookies.remove({
 //   url: `https://${DOMAIN}`,
 //   name: "id_token",
@@ -32,6 +33,24 @@ const RuntimeMessages = {
       await chrome.tabs.sendMessage(tab.id, {
         action: "setData",
         data: request.mediaInformation,
+      });
+      await chrome.storage.sync.get(["recentProcesses"], (result) => {
+        const recentProcesses = result.recentProcesses || [];
+        const itemIndex = recentProcesses.findIndex(
+          (item) => item.entryID === request.mediaInformation.entryID
+        );
+        if (itemIndex === -1) {
+          recentProcesses.unshift(request.mediaInformation);
+        } else {
+          // We found the process in the list, move it to the front
+          recentProcesses.splice(itemIndex, 1);
+          recentProcesses.unshift(request.mediaInformation);
+        }
+
+        if (recentProcesses.length > 5) {
+          recentProcesses.pop();
+        }
+        chrome.storage.sync.set({ recentProcesses });
       });
     } else {
       // The user is not authenticated, make them log in before moving forward

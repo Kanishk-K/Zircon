@@ -43,3 +43,58 @@ body {
 #login:hover > p {
   color: var(--foreground);
 }
+
+#prev_analysis {
+  display: flex;
+  flex-direction: column;
+  padding-top: 10px;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.process-card {
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  padding: 5px;
+  gap: 10px;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-card-border);
+  border-radius: 5px;
+}
+
+.process-card > img {
+  width: 150px;
+  height: auto;
+  border-radius: 5px;
+}
+
+.process-details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.process-details > h3 {
+  color: var(--color-brand);
+}
+
+.process-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.process-actions a {
+  fill: #a1a1aa;
+  cursor: pointer;
+}
+
+.process-actions a:hover {
+  fill: white;
+}
+
+.process-actions a svg {
+  height: 32px;
+  width: auto;
+}

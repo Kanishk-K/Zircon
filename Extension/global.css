@@ -44,6 +44,10 @@ h2 {
   font-size: 1.75rem /* 28px */;
 }
 
+h3 {
+  font-size: 1.5rem /* 24px */;
+}
+
 nav {
   display: flex;
   flex-direction: row;
