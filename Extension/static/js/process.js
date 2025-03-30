@@ -70,8 +70,10 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
         // Response exists, let's show this to the user
         const exists = await response.json();
         const existing_container = document.getElementById("existing-content");
-        const existing_link = existing_container.querySelector("a");
-        existing_link.href = `${WEBSITE}/notes/${payload.entryID}`;
+        const notes_link = existing_container.querySelector("#notes > a");
+        const summary_link = existing_container.querySelector("#summary > a");
+        notes_link.href = `${WEBSITE}/notes/${payload.entryID}`;
+        summary_link.href = `${WEBSITE}/summary/${payload.entryID}`;
         if (exists.videosAvailable) {
           for (const videoID of exists.videosAvailable) {
             const videoContainer = generateVideoAvailable(
