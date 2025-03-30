@@ -95,6 +95,7 @@ function QueueFunction(queues: {[key:string]: QueueInfo}) {
 }
 
 export default async function HealthPage() {
+    try{
     const res = await fetch(`${process.env.SERVERHOST}/health`, {
         method: "GET",
         headers: {
@@ -113,4 +114,9 @@ export default async function HealthPage() {
             {QueueFunction(data.queueInfo ? data.queueInfo : {})}
         </div>
     )
+    } catch (error) {
+        return (
+            Error("Unable to fetch server health information. Please try again later.")
+        )
+    }
 }
