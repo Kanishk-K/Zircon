@@ -115,6 +115,14 @@ export const components = {
     }
 }
 
+export const summaryComponents = {
+    // Add any custom components or overrides here
+    ...components,
+    p : (props: ParagraphProps) => {
+        return <p className={`${genericFont.className} text-lg lg:text-xl leading-snug my-8`} {...props} />;
+    }
+}
+
 // export function useMDXComponents(components: MDXComponents): MDXComponents {
 //   return {
 //     ...components,
