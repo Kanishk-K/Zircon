@@ -134,8 +134,10 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
           }
           const existing_container =
             document.getElementById("existing-content");
-          const existing_link = existing_container.querySelector("a");
-          existing_link.href = `${WEBSITE}/notes/${payload.entryID}`;
+          const notes_link = existing_container.querySelector("#notes > a");
+          const summary_link = existing_container.querySelector("#summary > a");
+          notes_link.href = `${WEBSITE}/notes/${payload.entryID}`;
+          summary_link.href = `${WEBSITE}/summary/${payload.entryID}`;
           existing_container.classList.remove("hidden");
         })
         .catch((err) => {
