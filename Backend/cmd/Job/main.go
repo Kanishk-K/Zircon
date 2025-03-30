@@ -40,9 +40,9 @@ type JobSchedulerService struct {
 }
 
 var validVideoChoices = map[string]bool{
-	"":          true,
-	"subway":    true,
-	"minecraft": true,
+	"":               true,
+	"subway_surfers": true,
+	"minecraft":      true,
 }
 
 func validateRequest(requestBody *jobutil.JobQueueRequest) error {
