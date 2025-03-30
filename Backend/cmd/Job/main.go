@@ -9,12 +9,12 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 
 	apiresponse "github.com/Kanishk-K/UniteDownloader/Backend/pkg/apiResponse"
 	dynamo "github.com/Kanishk-K/UniteDownloader/Backend/pkg/dynamoClient"
 	"github.com/Kanishk-K/UniteDownloader/Backend/pkg/jobutil"
+	kalturaclient "github.com/Kanishk-K/UniteDownloader/Backend/pkg/kalturaClient"
 	s3client "github.com/Kanishk-K/UniteDownloader/Backend/pkg/s3Client"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -46,25 +46,15 @@ var validVideoChoices = map[string]bool{
 }
 
 func validateRequest(requestBody *jobutil.JobQueueRequest) error {
-	// Step 1: Ensure the transcript link is valid
-	url, err := url.Parse(requestBody.TranscriptLink)
-	if err != nil {
-		log.Printf("Failed to parse URL: %s", requestBody.TranscriptLink)
-		return err
-	}
-	// Step 2: Ensure the transcript link is from an authorized source
-	if url.Host != "cdnapi.kaltura.com" {
-		return fmt.Errorf("transcript link is not from an authorized source %s", requestBody.TranscriptLink)
-	}
-	// Step 3: Ensure the background video is from one of the available options
+	// Step 1: Ensure the background video is from one of the available options
 	if _, ok := validVideoChoices[requestBody.BackgroundVideo]; !ok {
 		return fmt.Errorf("background video is not from an authorized source %s", requestBody.BackgroundVideo)
 	}
-	// Step 4: Ensure the entry ID is not empty
+	// Step 2: Ensure the entry ID is not empty
 	if requestBody.EntryID == "" {
 		return errors.New("entry ID is empty")
 	}
-	// Step 5: Ensure the title is not empty
+	// Step 3: Ensure the title is not empty
 	if requestBody.Title == "" {
 		return errors.New("title is empty")
 	}
@@ -212,7 +202,13 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 			return resp, err
 		}
 
-		transcriptString, err := downloadTranscript(requestBody.TranscriptLink)
+		transcriptLink, err := kalturaclient.GetTranscriptLink(requestBody.EntryID)
+		if err != nil {
+			_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
+			_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
+			apiresponse.APIErrorResponse(500, "Failed to get transcript link", &resp)
+		}
+		transcriptString, err := downloadTranscript(transcriptLink)
 		if err != nil {
 			_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
 			_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)

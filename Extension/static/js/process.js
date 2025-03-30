@@ -25,7 +25,6 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     payload = {
       entryID: msg.data.entryID,
       title: msg.data.title,
-      transcript: msg.data.transcript,
       backgroundVideo: "",
     };
 

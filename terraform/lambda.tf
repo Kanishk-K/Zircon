@@ -49,7 +49,8 @@ resource "aws_lambda_function" "job-lambda" {
   timeout          = 29
   environment {
     variables = {
-      OPENAI_API_KEY = var.OPENAI_API_KEY
+      OPENAI_API_KEY     = var.OPENAI_API_KEY
+      KALTURA_PARTNER_ID = var.KALTURA_PARTNER_ID
     }
   }
 }

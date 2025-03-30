@@ -4,15 +4,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: This is the Auth Service SAM Local Testing Template
 
 Parameters:
-  GOOGLE_CLIENT_ID:
-    Type: String
-    Description: Google Client ID
-  GOOGLE_CLIENT_SECRET:
-    Type: String
-    Description: Google Client Secret
-  JWT_PRIVATE:
-    Type: String
-    Description: JWT Secret
   OPENAI_API_KEY:
     Type: String
     Description: OpenAI API Key
@@ -22,6 +13,9 @@ Parameters:
   REDIS_URL:
     Type: String
     Description: Redis URL
+  KALTURA_PARTNER_ID:
+    Type: String
+    Description: Kaltura Partner ID
 
 Resources:
   JobQueueFunction:
@@ -44,6 +38,7 @@ Resources:
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OPENAI_API_KEY
+          KALTURA_PARTNER_ID: !Ref KALTURA_PARTNER_ID
 
   TTSGenerationFunction:
     Type: AWS::Serverless::Function
