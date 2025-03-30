@@ -114,7 +114,7 @@ export default async function HealthPage() {
             {QueueFunction(data.queueInfo ? data.queueInfo : {})}
         </div>
     )
-    } catch (error) {
+    } catch {
         return (
             Error("Unable to fetch server health information. Please try again later.")
         )
