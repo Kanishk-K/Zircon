@@ -10,7 +10,6 @@ interface ServerInfo {
 interface QueueInfo {
     processed: number;
     failed: number;
-    timestamp: string;
 }
 
 interface HealthResponse {
@@ -85,7 +84,7 @@ function QueueFunction(queues: {[key:string]: QueueInfo}) {
                     <div className={"flex flex-col gap-2 mr-2"}>
                         <p className="text-sm">Processed: {queue.processed}</p>
                         <p className="text-sm">Failed: {queue.failed}</p>
-                        <p className="text-sm">Last Updated: {getUptime(queue.timestamp)} ago</p>
+                        <p className="text-sm">Data from the past 24 hours.</p>
                     </div>
                 </div>
                 ))}

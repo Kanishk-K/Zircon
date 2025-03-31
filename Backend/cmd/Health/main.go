@@ -21,9 +21,8 @@ type FilteredServerInfo struct {
 }
 
 type QueueInfo struct {
-	Processed int       `json:"processed"`
-	Failed    int       `json:"failed"`
-	Timestamp time.Time `json:"timestamp"`
+	Processed int `json:"processed"`
+	Failed    int `json:"failed"`
 }
 
 type HealthResponse struct {
@@ -78,9 +77,8 @@ func (hs *HealthService) handler() (events.APIGatewayProxyResponse, error) {
 			}
 			// Get the queue info
 			healthResponse.QueueInfo[queue] = QueueInfo{
-				Processed: stats.ProcessedTotal,
-				Failed:    stats.FailedTotal,
-				Timestamp: stats.Timestamp,
+				Processed: stats.Processed,
+				Failed:    stats.Failed,
 			}
 		}
 	}
