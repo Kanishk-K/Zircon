@@ -9,9 +9,6 @@ resource "aws_ses_configuration_set" "ses_configuration_videos" {
 
 resource "aws_ses_domain_identity" "zircon_domain_identity" {
   domain = var.DOMAIN
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_ses_domain_dkim" "zircon_dkim" {

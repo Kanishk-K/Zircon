@@ -134,5 +134,10 @@ resource "aws_ecs_service" "consumer-service" {
     base              = 1
     weight            = 100
   }
-  depends_on = [aws_ecs_cluster_capacity_providers.ecs-consumer-capacity-provider, aws_s3_bucket.s3_bucket]
+  depends_on = [
+    aws_ecs_cluster_capacity_providers.ecs-consumer-capacity-provider,
+    aws_s3_object.static_logo,
+    aws_s3_object.static_minecraft,
+    aws_s3_object.static_subway_surfers
+  ]
 }

@@ -7,6 +7,9 @@ resource "aws_cognito_user_pool" "zircon_user_pool" {
     pre_sign_up       = aws_lambda_function.pre_signup_lambda.arn
     post_confirmation = aws_lambda_function.post_signup_lambda.arn
   }
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_cognito_identity_provider" "zircon_google_oauth" {
@@ -28,7 +31,6 @@ resource "aws_cognito_user_pool_domain" "zircon_auth_domain" {
   domain          = "auth.${var.DOMAIN}"
   certificate_arn = aws_acm_certificate.cognito_ssl_cert.arn
   user_pool_id    = aws_cognito_user_pool.zircon_user_pool.id
-
 }
 
 resource "aws_cognito_user_pool_client" "zircon_app_client" {
