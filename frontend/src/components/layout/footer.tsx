@@ -21,7 +21,7 @@ export default function Footer() {
                     <Link href="/notes" className="hover:text-foreground text-neutral-400">Notes</Link>
                     <Link href="/health" className="hover:text-foreground text-neutral-400">System Status</Link>
                     <a href="https://github.com/Kanishk-K/Zircon" className="hover:text-foreground text-neutral-400">Github</a>
-                    <a href="#" className="hover:text-foreground text-neutral-400">About</a>
+                    <a href="https://www.kanishkkacholia.com/projects/zircon" target="_blank" className="hover:text-foreground text-neutral-400">About</a>
                 </div>
         </footer>
     );

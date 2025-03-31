@@ -10,7 +10,7 @@ export default function Navbar() {
                     <Image className="h-10 lg:h-12 w-auto" src="/logo_wide.svg" alt="Logo" width={600} height={200} />
                 </Link>
                 <div className="hidden md:flex flex-row items-center gap-6">
-                    <a href="#" className="hover:text-foreground text-neutral-400">About</a>
+                    <a href="https://www.kanishkkacholia.com/projects/zircon" target="_blank" className="hover:text-foreground text-neutral-400">About</a>
                     <Link href="/notes" className="hover:text-foreground text-neutral-400">Notes</Link>
                     <Link href="/health" className="hover:text-foreground text-neutral-400">System Status</Link>
                     <a href="https://github.com/Kanishk-K/Zircon" className="hover:text-foreground text-neutral-400 flex flex-row items-center gap-2">Github <FaGithub /></a>
