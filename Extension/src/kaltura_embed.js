@@ -8,7 +8,6 @@ window.addEventListener("load", function () {
     const entryID = player.innerHTML.match(/entryId:"([^"]+)"/)[1];
     logSuccess(`Partner ID: ${partnerID}, Entry ID: ${entryID}`);
     const element = document.querySelector("#wrap");
-
     getVideoInformation(partnerID, entryID)
       .then(generateBanner)
       .then((banner) => {

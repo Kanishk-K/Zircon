@@ -29,6 +29,12 @@
       ],
       "css": ["static/css/kaltura_player.css"],
       "all_frames": true
+    },
+    {
+      "matches": ["https://kaf.canvas.umn.edu/browseandembed/*"],
+      "js": ["src/util/logger.js", "src/util/media.js", "src/kaltura_embed.js"],
+      "css": ["static/css/kaltura_player.css"],
+      "all_frames": true
     }
   ],
   "background": {
