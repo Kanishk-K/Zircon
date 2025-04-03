@@ -1,9 +1,25 @@
+.download-banner {
+  z-index: 1 !important;
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  color: white !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  width: fit-content !important;
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+}
 .download-banner a {
-  fill: #52525b !important;
-  margin-left: 5px !important;
-  margin-right: 5px !important;
+  fill: #a1a1aa !important;
+  margin-left: 10px !important;
+  margin-right: 10px !important;
+  cursor: pointer !important;
+}
+
+.download-banner a svg {
+  height: 32px;
+  width: auto;
 }
 
 .download-banner a:hover {
-  fill: black !important;
+  fill: white !important;
 }
