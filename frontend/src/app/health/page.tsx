@@ -50,8 +50,8 @@ function Error(message: string) {
 function ServerFunction(servers: ServerInfo[]) {
     return (
         <div>
-            <h2 className={"text-4xl text-brand"}>Compute Fleet</h2>
-            <div className={"flex flex-col gap-4 border-t-2 border-brand pt-4"}>
+            <h2 className={"text-4xl text-brand border-b-2 border-brand pb-2 pr-2 w-fit"}>Compute Fleet</h2>
+            <div className={"flex flex-col gap-4 pt-4"}>
                 {servers.map((server, index) => (
                     <div key={index+1} className={"flex flex-col bg-card border-cardborder border-2 justify-center gap-2 p-4 rounded-lg"}>
                         <div className={"flex flex-row items-center gap-2"}>
@@ -72,8 +72,8 @@ function ServerFunction(servers: ServerInfo[]) {
 function QueueFunction(queues: {[key:string]: QueueInfo}) {
     return (
         <div>
-            <h2 className={"text-4xl text-brand"}>Queue Health</h2>
-            <div className={"flex flex-col gap-4 border-t-2 border-brand pt-4"}>
+            <h2 className={"text-4xl text-brand border-b-2 border-brand pb-2 pr-2 w-fit"}>Queue Health</h2>
+            <div className={"flex flex-col gap-4 pt-4"}>
                 {Object.entries(queues).map(([key, queue]) => (
                     <div key={key} className={"flex flex-col bg-card border-cardborder border-2 justify-center gap-2 p-4 rounded-lg"}>
                     <div className={"flex flex-row items-center gap-2"}>
@@ -82,7 +82,6 @@ function QueueFunction(queues: {[key:string]: QueueInfo}) {
                     </div>
                     <div className={"flex flex-col gap-2 mr-2"}>
                         <p className="text-sm">Processed: {queue.processed}</p>
-                        <p className="text-sm">Data from the past 24 hours.</p>
                     </div>
                 </div>
                 ))}
