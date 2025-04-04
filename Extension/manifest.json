@@ -35,6 +35,17 @@
       "js": ["src/util/logger.js", "src/util/media.js", "src/kaltura_embed.js"],
       "css": ["static/css/kaltura_player.css"],
       "all_frames": true
+    },
+    {
+      "matches": ["https://media.unite.umn.edu/portal/player.php?*"],
+      "js": [
+        "src/util/logger.js",
+        "src/util/media.js",
+        "src/util/unite.js",
+        "src/unite_player.js"
+      ],
+      "css": ["static/css/unite_player.css"],
+      "all_frames": true
     }
   ],
   "background": {

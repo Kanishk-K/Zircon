@@ -1,0 +1,39 @@
+#zircon-container {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#zircon-container > div {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  width: fit-content !important;
+  padding: 10px !important;
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+  border-radius: 10px !important;
+}
+
+#zircon-container img {
+  max-height: 180px;
+}
+
+#zircon-container .download-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  margin-top: 10px !important;
+}
+
+#zircon-container a {
+  fill: #a1a1aa !important;
+  cursor: pointer !important;
+}
+
+#zircon-container a svg {
+  height: 32px;
+  width: auto;
+}
+
+#zircon-container a:hover {
+  fill: white !important;
+}
