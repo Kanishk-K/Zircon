@@ -101,7 +101,7 @@ func (sgs SubtitleGenerationService) handler(request events.DynamoDBEvent) (even
 		return resp, err
 	}
 	// Upload the audio to S3
-	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("assets/%s/Audio.mp3", entryID), bytes.NewReader(decodedAudio), "audio/mp3")
+	err = sgs.s3Client.UploadFile(BUCKET, fmt.Sprintf("assets/%s/Audio.aac", entryID), bytes.NewReader(decodedAudio), "audio/aac")
 	if err != nil {
 		log.Printf("Failed to upload audio: %v", err)
 		resp.BatchItemFailures = []events.DynamoDBBatchItemFailure{{

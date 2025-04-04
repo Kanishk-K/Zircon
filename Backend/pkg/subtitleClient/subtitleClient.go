@@ -31,6 +31,7 @@ func (sc *SubtitleClient) GenerateTTS(textInput string) (*LemonFoxResponse, erro
 			"voice": "adam",
 			// "speed":           1.2,
 			"word_timestamps": true,
+			"response_format": "aac",
 		},
 	)
 	if err != nil {

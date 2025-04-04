@@ -46,7 +46,7 @@ data "aws_iam_policy_document" "ecs-consumer-task-s3" {
     effect  = "Allow"
     actions = ["s3:GetObject"]
     resources = [
-      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Audio.mp3",
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Audio.aac",
       "${aws_s3_bucket.s3_bucket.arn}/assets/*/Subtitle.ass",
       "${aws_s3_bucket.s3_bucket.arn}/background/*"
     ]

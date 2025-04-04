@@ -34,7 +34,7 @@ data "aws_iam_policy_document" "tts-s3-description" {
   statement {
     actions = ["s3:PutObject"]
     resources = [
-      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Audio.mp3",
+      "${aws_s3_bucket.s3_bucket.arn}/assets/*/Audio.aac",
       "${aws_s3_bucket.s3_bucket.arn}/assets/*/Subtitle.ass",
       "${aws_s3_bucket.s3_bucket.arn}/assets/*/TTSResponse.json",
     ]

@@ -65,13 +65,13 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 	}
 	defer os.RemoveAll(workingDir)
 
-	mp3Fp, err := os.CreateTemp(workingDir, "audio-*.mp3")
+	aacFp, err := os.CreateTemp(workingDir, "audio-*.aac")
 	if err != nil {
 		log.Printf("Error creating temp audio file: %v", err)
 		return err
 	}
-	defer mp3Fp.Close()
-	defer os.Remove(mp3Fp.Name())
+	defer aacFp.Close()
+	defer os.Remove(aacFp.Name())
 
 	subtitlesFp, err := os.CreateTemp(workingDir, "subtitles-*.ass")
 	if err != nil {
@@ -80,19 +80,19 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 	defer subtitlesFp.Close()
 	defer os.Remove(subtitlesFp.Name())
 
-	mp3Bytes, err := p.s3Client.ReadFile(BUCKET, fmt.Sprintf("assets/%s/Audio.mp3", payload.EntryID))
+	aacBytes, err := p.s3Client.ReadFile(BUCKET, fmt.Sprintf("assets/%s/Audio.aac", payload.EntryID))
 	if err != nil {
 		log.Printf("Error reading audio file from S3: %v", err)
 		return err
 	}
-	_, err = io.Copy(mp3Fp, mp3Bytes)
+	_, err = io.Copy(aacFp, aacBytes)
 	if err != nil {
-		log.Printf("Error putting bytes into mp3 file: %v", err)
+		log.Printf("Error putting bytes into aac file: %v", err)
 		return err
 	}
-	err = mp3Bytes.Close()
+	err = aacBytes.Close()
 	if err != nil {
-		log.Printf("Failed to close mp3 reader: %v", err)
+		log.Printf("Failed to close aac reader: %v", err)
 		return err
 	}
 
@@ -131,7 +131,7 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 		"-i",
 		backgroundVideo,
 		"-i",
-		filepath.Base(mp3Fp.Name()),
+		filepath.Base(aacFp.Name()),
 		"-i",
 		logoPng,
 		"-filter_complex",
