@@ -23,6 +23,7 @@ window.addEventListener("load", function () {
   zirconContainer.appendChild(mainVideoContainer);
 
   const element = this.document.querySelector("p");
+  element.insertAdjacentElement("beforebegin", zirconContainer);
 
   getVideoInformation(partnerID, entryID)
     .then((data) => {
@@ -47,6 +48,4 @@ window.addEventListener("load", function () {
         });
     });
   });
-
-  element.insertAdjacentElement("beforebegin", zirconContainer);
 });
