@@ -15,7 +15,10 @@ export default function Home() {
           </div>
         </div>
         <div className="flex flex-col items-center lg:items-end w-full lg:w-1/2">
-          <Image src="/hero.png" alt="Extension being used" className="w-full h-auto" width={2160} height={2160}/>
+          <video width={2230} height={1080} className={"rounded-2xl"} autoPlay loop muted playsInline>
+            <source src="/demo.mp4" type="video/mp4"/>
+            <Image src="/hero.png" alt="Extension being used" className="w-full h-auto" width={2160} height={2160}/>
+          </video>
         </div>
       </div>
 
@@ -32,18 +35,18 @@ export default function Home() {
           <div className="flex flex-col w-full gap-4">
             <p className="text-foreground font-semibold text-center text-4xl lg:text-3xl lg:font-normal"><span className="text-brand">Download</span> unlimited HD lectures</p>
           </div>
-          <Image src="/Download.png" alt="Downloading Feature" className="lg:absolute lg:w-auto h-full object-contain blur-image" width={556} height={498}/>
+          <Image src="/download.png" alt="Downloading Feature" className="lg:absolute lg:w-auto h-full object-contain blur-image" width={556} height={498}/>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:h-[450px] xl:h-[550px] xl:px-24 gap-16 ">
         <div className="flex flex-col lg:flex-row items-center bg-none lg:bg-card lg:border-2 lg:border-cardborder lg:rounded-2xl lg:p-8 lg:justify-center">
           <div className="flex flex-col w-full gap-4 lg:w-1/2">
-            <p className="text-foreground font-semibold text-4xl lg:text-3xl lg:font-normal"><span className="text-brand">Generate</span> a variety of short videos</p>
-            <p>Choose from a selection including Minecraft, Subway Surfers, and many more!</p>
+            <p className="text-foreground font-semibold text-center lg:text-left text-4xl lg:text-3xl lg:font-normal"><span className="text-brand">Generate</span> a variety of short videos</p>
+            <p className={"hidden lg:inline"}>Choose from a selection including Minecraft, Subway Surfers, and many more!</p>
           </div>
-          <div className="flex justify-center w-full lg:w-1/2">
-            <Image src="/Mobile.png" alt="Mobile Feature" className="object-contain w-3/4" width={4320} height={4320}/>
+          <div className="flex justify-center w-full lg:w-1/2 max-h-96 mt-8 lg:mt-0">
+            <Image src="/mobile.png" alt="Mobile Feature" className="object-contain" width={464} height={980}/>
           </div>
         </div>
       </div>
