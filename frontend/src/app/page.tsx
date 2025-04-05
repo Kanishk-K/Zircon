@@ -35,7 +35,7 @@ export default function Home() {
           <div className="flex flex-col w-full gap-4">
             <p className="text-foreground font-semibold text-center text-4xl lg:text-3xl lg:font-normal"><span className="text-brand">Download</span> unlimited HD lectures</p>
           </div>
-          <Image src="/download.png" alt="Downloading Feature" className="lg:absolute lg:w-auto h-full object-contain blur-image" width={556} height={498}/>
+          <Image src="/Download.png" alt="Downloading Feature" className="lg:absolute lg:w-auto h-full object-contain blur-image" width={556} height={498}/>
         </div>
       </div>
 
@@ -46,7 +46,7 @@ export default function Home() {
             <p className={"hidden lg:inline"}>Choose from a selection including Minecraft, Subway Surfers, and many more!</p>
           </div>
           <div className="flex justify-center w-full lg:w-1/2 max-h-96 mt-8 lg:mt-0">
-            <Image src="/mobile.png" alt="Mobile Feature" className="object-contain" width={464} height={980}/>
+            <Image src="/Mobile.png" alt="Mobile Feature" className="object-contain" width={464} height={980}/>
           </div>
         </div>
       </div>
