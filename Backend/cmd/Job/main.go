@@ -43,6 +43,10 @@ var validVideoChoices = map[string]bool{
 	"":               true,
 	"subway_surfers": true,
 	"minecraft":      true,
+	"baking":         true,
+	"makeup":         true,
+	"sand":           true,
+	"soap":           true,
 }
 
 func validateRequest(requestBody *jobutil.JobQueueRequest) error {

@@ -119,7 +119,7 @@ func (p *GenerateVideoProcess) HandleVideoGenerationTask(ctx context.Context, t 
 	}
 	backgroundVideo := filepath.Join(dir, "static", fmt.Sprintf("%s.mp4", payload.BackgroundVideo))
 	logoPng := filepath.Join(dir, "static", "logo.png")
-	minuteOffset := rand.IntN(30)
+	minuteOffset := rand.IntN(26)
 	secondsOffset := rand.IntN(60)
 	cmd := exec.Command(
 		"ffmpeg",
