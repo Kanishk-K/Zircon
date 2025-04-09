@@ -11,7 +11,7 @@ export default function Home() {
           <p>Analyze, summarize, and engage with your lectures like never before. Generate notes, create video content, and download content for offline use!</p>
           <div className="flex flex-row items-center gap-4">
             <Link href="/notes" className="border-2 border-brand text-brand rounded-lg p-2 md:text-xl">See An Example</Link>
-            <a href="#" className="p-2 bg-brand text-background rounded-lg md:text-xl flex flex-row items-center gap-2">Get Started <FaArrowRight /></a>
+            <a target="_blank" href="https://chromewebstore.google.com/detail/afhhheecjhjoflgloafdgpbonoppknij?utm_source=website" className="p-2 bg-brand text-background rounded-lg md:text-xl flex flex-row items-center gap-2">Get Started <FaArrowRight /></a>
           </div>
         </div>
         <div className="flex flex-col items-center lg:items-end w-full lg:w-1/2">
