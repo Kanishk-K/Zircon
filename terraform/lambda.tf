@@ -118,3 +118,13 @@ resource "aws_lambda_function" "health_lambda" {
     }
   }
 }
+
+resource "aws_lambda_function" "ttl_video" {
+  function_name    = "zircon-ttl-video-lambda"
+  role             = aws_iam_role.ttl-role.arn
+  runtime          = "provided.al2023"
+  handler          = "bootstrap"
+  filename         = "${local.zip_path}/TTLVideo.zip"
+  source_code_hash = filebase64sha256("${local.zip_path}/TTLVideo.zip")
+  memory_size      = 128
+}

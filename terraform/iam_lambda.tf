@@ -42,7 +42,8 @@ resource "aws_iam_policy_attachment" "submit-cloudwatch" {
     aws_iam_role.tts-role.name,
     aws_iam_role.queue-lambda.name,
     aws_iam_role.exists_lambda_role.name,
-    aws_iam_role.health_lambda.name
+    aws_iam_role.health_lambda.name,
+    aws_iam_role.ttl-role.name,
   ]
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }

@@ -11,6 +11,7 @@ import (
 type S3Methods interface {
 	UploadFile(bucket string, key string, file io.ReadSeeker, filetype string) error
 	ReadFile(bucket string, key string) (io.ReadCloser, error)
+	DeleteFile(bucket string, key string) error
 }
 
 type S3Client struct {
@@ -45,4 +46,15 @@ func (sc *S3Client) ReadFile(bucket string, key string) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return resp.Body, nil
+}
+
+func (sc *S3Client) DeleteFile(bucket string, key string) error {
+	_, err := sc.client.DeleteObject(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

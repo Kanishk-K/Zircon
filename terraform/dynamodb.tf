@@ -110,6 +110,27 @@ resource "aws_lambda_function_event_invoke_config" "videogen-noretry" {
   maximum_retry_attempts = 0
 }
 
+resource "aws_lambda_event_source_mapping" "invoke-ttl" {
+  event_source_arn       = aws_dynamodb_table.video_requests_table.stream_arn
+  function_name          = aws_lambda_function.ttl_video.arn
+  starting_position      = "LATEST"
+  batch_size             = 1
+  enabled                = true
+  maximum_retry_attempts = 0
+  filter_criteria {
+    filter {
+      pattern = jsonencode({
+        eventName = ["REMOVE"]
+      })
+    }
+  }
+}
+
+resource "aws_lambda_function_event_invoke_config" "ttl-noretry" {
+  function_name          = aws_lambda_function.ttl_video.function_name
+  maximum_retry_attempts = 0
+}
+
 # CREATES a DynamoDB table to store metadata on users
 resource "aws_dynamodb_table" "users-table" {
   name           = "Users"
