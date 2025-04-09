@@ -37,7 +37,7 @@ resource "aws_cognito_user_pool_client" "zircon_app_client" {
   name = "zircon-app-client"
 
   user_pool_id                         = aws_cognito_user_pool.zircon_user_pool.id
-  callback_urls                        = ["https://${var.EXTENSION_ID}.chromiumapp.org/callback"]
+  callback_urls                        = ["https://${var.PROD_EXTENSION_ID}.chromiumapp.org/callback", "https://${var.EXTENSION_ID}.chromiumapp.org/callback"]
   supported_identity_providers         = [aws_cognito_identity_provider.zircon_google_oauth.provider_name]
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
