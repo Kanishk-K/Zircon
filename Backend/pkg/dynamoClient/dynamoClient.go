@@ -22,6 +22,7 @@ type DynamoMethods interface {
 	DeleteJobByUser(entryID string, userID string) error
 	GenerateSubtitles(entryID string, videoID string) error
 	AddVideoToJob(entryID string, videoID string) (*dynamodb.UpdateItemOutput, error)
+	RemoveVideoFromJob(entryID string, videoID string) error
 	GetJob(entryID string) (*JobDocument, error)
 
 	// Video request methods
@@ -205,6 +206,29 @@ func (dc *DynamoClient) AddVideoToJob(entryID string, videoID string) (*dynamodb
 		return nil, err
 	}
 	return update, nil
+}
+
+func (dc *DynamoClient) RemoveVideoFromJob(entryID string, videoID string) error {
+	_, err := dc.client.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
+		TableName: aws.String("Jobs"),
+		Key: map[string]types.AttributeValue{
+			"entryID": &types.AttributeValueMemberS{
+				Value: entryID,
+			},
+		},
+		UpdateExpression:    aws.String("DELETE videosAvailable :videoID"),
+		ConditionExpression: aws.String("attribute_exists(entryID)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":videoID": &types.AttributeValueMemberSS{
+				Value: []string{videoID},
+			},
+		},
+	})
+	if err != nil {
+		log.Printf("Error updating job data: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (dc *DynamoClient) GetJob(entryID string) (*JobDocument, error) {

@@ -44,3 +44,24 @@ resource "aws_iam_policy_attachment" "ttl-s3-attachment" {
   roles      = [aws_iam_role.ttl-role.name]
   policy_arn = aws_iam_policy.ttl-s3.arn
 }
+
+data "aws_iam_policy_document" "ttl-dynamo-jobs-description" {
+  statement {
+    actions = ["dynamodb:UpdateItem"]
+    resources = [
+      aws_dynamodb_table.jobs-table.arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "ttl-dynamo-jobs" {
+  name        = "ttl-dynamo-jobs"
+  description = "Allows the TTL lambda to remove elments from the videosAvailable attribute in the Jobs table."
+  policy      = data.aws_iam_policy_document.ttl-dynamo-jobs-description.json
+}
+
+resource "aws_iam_policy_attachment" "ttl-dynamo-jobs-attachment" {
+  name       = "ttl-dynamo-jobs-attachment"
+  roles      = [aws_iam_role.ttl-role.name]
+  policy_arn = aws_iam_policy.ttl-dynamo-jobs.arn
+}
