@@ -220,6 +220,14 @@ func (jss JobSchedulerService) handler(request events.APIGatewayProxyRequest) (e
 			return resp, err
 		}
 
+		if len(*transcriptString) > 480000 {
+			// Transcript is too long, reject the request
+			_ = jss.dynamoClient.DeleteJobByUser(requestBody.EntryID, subject)
+			_ = jss.dynamoClient.DeregisterJobFromUser(subject, requestBody.EntryID)
+			apiresponse.APIErrorResponse(500, "Transcript is too long", &resp)
+			return resp, nil
+		}
+
 		var errGroup errgroup.Group
 		errGroup.Go(func() error {
 			return jss.generateNotes(transcriptString, requestBody.EntryID)
