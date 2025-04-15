@@ -45,7 +45,7 @@ func (dc *DynamoClient) CreateUserIfNotExists(userID string) error {
 		UserDocument{
 			UserID:               userID,
 			CreatedOn:            time.Now().Format("2006-01-02 15:04:05"),
-			PermittedGenerations: 5,
+			PermittedGenerations: 50,
 		},
 	)
 	if err != nil {
