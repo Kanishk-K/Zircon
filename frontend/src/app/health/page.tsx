@@ -106,7 +106,11 @@ export default async function HealthPage() {
     const data: HealthResponse = await res.json();
     return (
         <div className={"flex flex-col gap-16"}>
-            {ServerFunction(data.serverInfo ? data.serverInfo : [])}
+            {ServerFunction(data.serverInfo ? data.serverInfo.sort(
+                (a: ServerInfo, b: ServerInfo) => {
+                    return new Date(a.started).getTime() - new Date(b.started).getTime();
+                }
+            ) : [])}
             {QueueFunction(data.queueInfo ? data.queueInfo : {})}
         </div>
     )

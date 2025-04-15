@@ -33,9 +33,9 @@ resource "aws_launch_template" "ecs-consumer-launch-template" {
 resource "aws_autoscaling_group" "ecs-consumer-asg" {
   name                = "lecture-analyzer-ecs-consumer-asg"
   vpc_zone_identifier = aws_subnet.private-subnets[*].id
-  min_size            = 1
-  max_size            = 1
-  desired_capacity    = 1
+  min_size            = 3
+  max_size            = 3
+  desired_capacity    = 3
   launch_template {
     id      = aws_launch_template.ecs-consumer-launch-template.id
     version = "$Latest"
@@ -128,7 +128,7 @@ resource "aws_ecs_service" "consumer-service" {
   name            = "lecture-analyzer-ecs-consumer-service"
   cluster         = aws_ecs_cluster.consumer-cluster.id
   task_definition = aws_ecs_task_definition.ecs-consumer-task-definition.arn
-  desired_count   = 1
+  desired_count   = 3
   capacity_provider_strategy {
     capacity_provider = aws_ecs_capacity_provider.ecs-consumer-capacity-provider.name
     base              = 1
