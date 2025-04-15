@@ -52,6 +52,6 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage", "identity", "cookies", "tabs"],
+  "permissions": ["storage", "identity", "cookies"],
   "host_permissions": ["https://zircon.socialcoding.net/*"]
 }
