@@ -78,7 +78,7 @@ function QueueFunction(queues: {[key:string]: QueueInfo}) {
                     <div key={key} className={"flex flex-col bg-card border-cardborder border-2 justify-center gap-2 p-4 rounded-lg"}>
                     <div className={"flex flex-row items-center gap-2"}>
                         <FaLayerGroup className="text-brand" />
-                        <p className="text-xl text-foreground">{`Queue (${convertToTitleCase(key)})`}</p>
+                        <p className="text-xl text-foreground">{`Queue (Priority: ${convertToTitleCase(key)})`}</p>
                     </div>
                     <div className={"flex flex-col gap-2 mr-2"}>
                         <p className="text-sm">Processed: {queue.processed}</p>

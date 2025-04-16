@@ -22,7 +22,7 @@ export default function Home() {
         </div>
       </div>
 
-      <h1 className="text-foreground text-5xl lg:text-7xl font-semibold leading-snug hidden lg:block text-center lg:mt-14">Powerful integrations and features <span className="text-brand">right out the box</span></h1>
+      <h1 className="text-foreground text-5xl lg:text-7xl font-semibold leading-snug hidden lg:block text-center lg:mt-14">Powerful integrations and features <span className="text-brand">right out of the box</span></h1>
 
       <div className="grid grid-cols-1 mt-8 lg:grid-cols-2 lg:h-[450px] xl:h-[550px] xl:px-24 gap-16">
         <div className="relative flex flex-col lg:flex-row items-center bg-none lg:bg-card lg:border-2 lg:border-cardborder lg:rounded-2xl lg:p-8 lg:items-end lg:justify-center">
